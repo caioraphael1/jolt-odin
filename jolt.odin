@@ -170,18 +170,18 @@ BodyType :: enum c.int {
 }
 
 MotionType :: enum c.int {
-	MotionType_Static = 0,
-	MotionType_Kinematic = 1,
-	MotionType_Dynamic = 2,
-	_MotionType_Count,
-	_MotionType_Force32 = 2147483647,
+	Static = 0,
+	Kinematic = 1,
+	Dynamic = 2,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 Activation :: enum c.int {
-	Activation_Activate = 0,
-	Activation_DontActivate = 1,
-	_Activation_Count,
-	_Activation_Force32 = 2147483647,
+	Activate = 0,
+	DontActivate = 1,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 ValidateResult :: enum c.int {
