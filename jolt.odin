@@ -3,13 +3,14 @@
 package jolt
 
 
-main :: proc() {
-	// Init()
-	// BodyInterface_CreateBody()
-	ObjectLayerPairFilterMask_Create()
+// Compilation tests
+// main :: proc() {
+// 	Init()
+// 	// BodyInterface_CreateBody()
+// 	// ObjectLayerPairFilterMask_Create()
 
-	fmt.printfln("hey... ;)")
-}
+// 	fmt.printfln("hey... ;)")
+// }
 
 
 import "core:c"
@@ -1081,16 +1082,19 @@ VehicleEngineSettings :: struct {
 
 
 when ODIN_OS == .Windows {
+	// @(extra_linker_flags="-ltcg")
+	// @(extra_linker_flags="/NODEFAULTLIB:LIBCMTD")
     foreign import lib {
-		"build/joltc.lib",
-        "build/Jolt.lib",
-		"build/joltc.exp",
+		"windows/Jolt.lib",
+		// "windows/joltc.dll",
+		"windows/joltc.lib",
     }
 } else {
-    @(extra_linker_flags="-lstdc++")
-    foreign import lib {
-        "build/jolt.lib",
-    }
+	#panic("No lib.")
+    // @(extra_linker_flags="-lstdc++")
+    // foreign import lib {
+        // "build/jolt.lib",
+    // }
 }
 
 @(default_calling_convention="c", link_prefix="JPH_")
