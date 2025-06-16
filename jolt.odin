@@ -1,38 +1,37 @@
-// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 package jolt
 
 
-// Compilation tests
-// main :: proc() {
-// 	Init()
-// 	// BodyInterface_CreateBody()
-// 	// ObjectLayerPairFilterMask_Create()
-
-// 	fmt.printfln("hey... ;)")
-// }
-
-
 import "core:c"
 
-import "core:fmt"
 
-_ :: c
+when ODIN_OS == .Windows {
+	// @(extra_linker_flags="-ltcg")
+	// @(extra_linker_flags="/NODEFAULTLIB:LIBCMTD")
+    foreign import lib {
+		"windows/Jolt.lib",
+		"windows/joltc.lib",
+		// "windows/joltc.dll",
+    }
+} else {
+	#panic("No lib.")
+    // @(extra_linker_flags="-lstdc++")
+    // foreign import lib {
+    // }
+}
 
-JOLT_C_H_ :: 1
 
-// CAPI :: EXTERN EXPORT
-
-DEFAULT_COLLISION_TOLERANCE :: 1.0-4 // float cDefaultCollisionTolerance = 1.0e-4f
+DEFAULT_COLLISION_TOLERANCE :: 1.0-4   // float cDefaultCollisionTolerance = 1.0e-4f
 DEFAULT_PENETRATION_TOLERANCE :: 1.0-4 // float cDefaultPenetrationTolerance = 1.0e-4f
-DEFAULT_CONVEX_RADIUS :: 0.05 // float cDefaultConvexRadius = 0.05f
-CAPSULE_PROJECTION_SLOP :: 0.02 // float cCapsuleProjectionSlop = 0.02f
-MAX_PHYSICS_JOBS :: 2048 // int cMaxPhysicsJobs = 2048
-MAX_PHYSICS_BARRIERS :: 8 // int cMaxPhysicsBarriers = 8
+DEFAULT_CONVEX_RADIUS :: 0.05          // float cDefaultConvexRadius = 0.05f
+CAPSULE_PROJECTION_SLOP :: 0.02        // float cCapsuleProjectionSlop = 0.02f
+MAX_PHYSICS_JOBS :: 2048               // int cMaxPhysicsJobs = 2048
+MAX_PHYSICS_BARRIERS :: 8              // int cMaxPhysicsBarriers = 8
 // INVALID_COLLISION_GROUP_ID :: ~0
 // INVALID_COLLISION_SUBGROUP_ID :: ~0
 
 
+/* Opaque Types */
 // Não obtido via return
 SharedMutex :: struct {}
 GroupFilter :: struct {}
@@ -143,7 +142,7 @@ VehicleCollisionTesterCastCylinder :: struct {}
 VehicleControllerSettings :: struct {}
 WheeledVehicleControllerSettings :: struct {}
 
-
+/* Aliases */
 BodyID :: u32
 SubShapeID :: u32
 ObjectLayer :: u32
@@ -151,22 +150,31 @@ BroadPhaseLayer :: u8
 CollisionGroupID :: u32
 CollisionSubGroupID :: u32
 CharacterID :: u32
+Color :: u32
+
+/* 
+REAL numbers. 
+They should change when aiming for double precision.
+*/
+RVec3 :: Vec3
+RMatrix4x4 :: Matrix4x4
+
 
 /* Enums */
 PhysicsUpdateError :: enum c.int {
-	PhysicsUpdateError_None = 0,
-	PhysicsUpdateError_ManifoldCacheFull = 1,
-	PhysicsUpdateError_BodyPairCacheFull = 2,
-	PhysicsUpdateError_ContactConstraintsFull = 4,
-	_PhysicsUpdateError_Count,
-	_PhysicsUpdateError_Force32 = 2147483647,
+	None = 0,
+	ManifoldCacheFull = 1,
+	BodyPairCacheFull = 2,
+	ContactConstraintsFull = 4,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 BodyType :: enum c.int {
-	BodyType_Rigid = 0,
-	BodyType_Soft = 1,
-	_BodyType_Count,
-	_BodyType_Force32 = 2147483647,
+	Rigid = 0,
+	Soft = 1,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 MotionType :: enum c.int {
@@ -185,242 +193,276 @@ Activation :: enum c.int {
 }
 
 ValidateResult :: enum c.int {
-	ValidateResult_AcceptAllContactsForThisBodyPair = 0,
-	ValidateResult_AcceptContact = 1,
-	ValidateResult_RejectContact = 2,
-	ValidateResult_RejectAllContactsForThisBodyPair = 3,
-	_ValidateResult_Count,
-	_ValidateResult_Force32 = 2147483647,
+	AcceptAllContactsForThisBodyPair = 0,
+	AcceptContact = 1,
+	RejectContact = 2,
+	RejectAllContactsForThisBodyPair = 3,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 ShapeType :: enum c.int {
-	ShapeType_Convex = 0,
-	ShapeType_Compound = 1,
-	ShapeType_Decorated = 2,
-	ShapeType_Mesh = 3,
-	ShapeType_HeightField = 4,
-	ShapeType_SoftBody = 5,
-	ShapeType_User1 = 6,
-	ShapeType_User2 = 7,
-	ShapeType_User3 = 8,
-	ShapeType_User4 = 9,
-	_ShapeType_Count,
-	_ShapeType_Force32 = 2147483647,
+	Convex = 0,
+	Compound = 1,
+	Decorated = 2,
+	Mesh = 3,
+	HeightField = 4,
+	SoftBody = 5,
+	User1 = 6,
+	User2 = 7,
+	User3 = 8,
+	User4 = 9,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 ShapeSubType :: enum c.int {
-	ShapeSubType_Sphere = 0,
-	ShapeSubType_Box = 1,
-	ShapeSubType_Triangle = 2,
-	ShapeSubType_Capsule = 3,
-	ShapeSubType_TaperedCapsule = 4,
-	ShapeSubType_Cylinder = 5,
-	ShapeSubType_ConvexHull = 6,
-	ShapeSubType_StaticCompound = 7,
-	ShapeSubType_MutableCompound = 8,
-	ShapeSubType_RotatedTranslated = 9,
-	ShapeSubType_Scaled = 10,
-	ShapeSubType_OffsetCenterOfMass = 11,
-	ShapeSubType_Mesh = 12,
-	ShapeSubType_HeightField = 13,
-	ShapeSubType_SoftBody = 14,
-	_ShapeSubType_Count,
-	_ShapeSubType_Force32 = 2147483647,
+	Sphere = 0,
+	Box = 1,
+	Triangle = 2,
+	Capsule = 3,
+	TaperedCapsule = 4,
+	Cylinder = 5,
+	ConvexHull = 6,
+	StaticCompound = 7,
+	MutableCompound = 8,
+	RotatedTranslated = 9,
+	Scaled = 10,
+	OffsetCenterOfMass = 11,
+	Mesh = 12,
+	HeightField = 13,
+	SoftBody = 14,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 ConstraintType :: enum c.int {
-	ConstraintType_Constraint = 0,
-	ConstraintType_TwoBodyConstraint = 1,
-	_ConstraintType_Count,
-	_ConstraintType_Force32 = 2147483647,
+	Constraint = 0,
+	TwoBodyConstraint = 1,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 ConstraintSubType :: enum c.int {
-	ConstraintSubType_Fixed = 0,
-	ConstraintSubType_Point = 1,
-	ConstraintSubType_Hinge = 2,
-	ConstraintSubType_Slider = 3,
-	ConstraintSubType_Distance = 4,
-	ConstraintSubType_Cone = 5,
-	ConstraintSubType_SwingTwist = 6,
-	ConstraintSubType_SixDOF = 7,
-	ConstraintSubType_Path = 8,
-	ConstraintSubType_Vehicle = 9,
-	ConstraintSubType_RackAndPinion = 10,
-	ConstraintSubType_Gear = 11,
-	ConstraintSubType_Pulley = 12,
-	ConstraintSubType_User1 = 13,
-	ConstraintSubType_User2 = 14,
-	ConstraintSubType_User3 = 15,
-	ConstraintSubType_User4 = 16,
-	_ConstraintSubType_Count,
-	_ConstraintSubType_Force32 = 2147483647,
+	Fixed = 0,
+	Point = 1,
+	Hinge = 2,
+	Slider = 3,
+	Distance = 4,
+	Cone = 5,
+	SwingTwist = 6,
+	SixDOF = 7,
+	Path = 8,
+	Vehicle = 9,
+	RackAndPinion = 10,
+	Gear = 11,
+	Pulley = 12,
+	User1 = 13,
+	User2 = 14,
+	User3 = 15,
+	User4 = 16,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 ConstraintSpace :: enum c.int {
-	ConstraintSpace_LocalToBodyCOM = 0,
-	ConstraintSpace_WorldSpace = 1,
-	_ConstraintSpace_Count,
-	_ConstraintSpace_Force32 = 2147483647,
+	LocalToBodyCOM = 0,
+	WorldSpace = 1,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 MotionQuality :: enum c.int {
-	MotionQuality_Discrete = 0,
-	MotionQuality_LinearCast = 1,
-	_MotionQuality_Count,
-	_MotionQuality_Force32 = 2147483647,
+	Discrete = 0,
+	LinearCast = 1,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 OverrideMassProperties :: enum c.int {
-	OverrideMassProperties_CalculateMassAndInertia,
-	OverrideMassProperties_CalculateInertia,
-	OverrideMassProperties_MassAndInertiaProvided,
-	_OverrideMassProperties_Count,
-	_OverrideMassProperties_Force32 = 2147483647,
+	CalculateMassAndInertia,
+	CalculateInertia,
+	MassAndInertiaProvided,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 AllowedDOFs :: enum c.int {
-	AllowedDOFs_All = 63,
-	AllowedDOFs_TranslationX = 1,
-	AllowedDOFs_TranslationY = 2,
-	AllowedDOFs_TranslationZ = 4,
-	AllowedDOFs_RotationX = 8,
-	AllowedDOFs_RotationY = 16,
-	AllowedDOFs_RotationZ = 32,
-	AllowedDOFs_Plane2D = 35,
-	_AllowedDOFs_Count,
-	_AllowedDOFs_Force32 = 2147483647,
+	All = 63,
+	TranslationX = 1,
+	TranslationY = 2,
+	TranslationZ = 4,
+	RotationX = 8,
+	RotationY = 16,
+	RotationZ = 32,
+	Plane2D = 35,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 GroundState :: enum c.int {
-	GroundState_OnGround = 0,
-	GroundState_OnSteepGround = 1,
-	GroundState_NotSupported = 2,
-	GroundState_InAir = 3,
-	_GroundState_Count,
-	_GroundState_Force32 = 2147483647,
+	OnGround = 0,
+	OnSteepGround = 1,
+	NotSupported = 2,
+	InAir = 3,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 BackFaceMode :: enum c.int {
-	BackFaceMode_IgnoreBackFaces,
-	BackFaceMode_CollideWithBackFaces,
-	_BackFaceMode_Count,
-	_BackFaceMode_Force32 = 2147483647,
+	IgnoreBackFaces,
+	CollideWithBackFaces,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 ActiveEdgeMode :: enum c.int {
-	ActiveEdgeMode_CollideOnlyWithActive,
-	ActiveEdgeMode_CollideWithAll,
-	_ActiveEdgeMode_Count,
-	_ActiveEdgeMode_Force32 = 2147483647,
+	CollideOnlyWithActive,
+	CollideWithAll,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 CollectFacesMode :: enum c.int {
-	CollectFacesMode_CollectFaces,
-	CollectFacesMode_NoFaces,
-	_CollectFacesMode_Count,
-	_CollectFacesMode_Force32 = 2147483647,
+	CollectFaces,
+	NoFaces,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 MotorState :: enum c.int {
-	MotorState_Off = 0,
-	MotorState_Velocity = 1,
-	MotorState_Position = 2,
-	_MotorState_Count,
-	_MotorState_Force32 = 2147483647,
+	Off = 0,
+	Velocity = 1,
+	Position = 2,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 CollisionCollectorType :: enum c.int {
-	CollisionCollectorType_AllHit = 0,
-	CollisionCollectorType_AllHitSorted = 1,
-	CollisionCollectorType_ClosestHit = 2,
-	CollisionCollectorType_AnyHit = 3,
-	_CollisionCollectorType_Count,
-	_CollisionCollectorType_Force32 = 2147483647,
+	AllHit = 0,
+	AllHitSorted = 1,
+	ClosestHit = 2,
+	AnyHit = 3,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 SwingType :: enum c.int {
-	SwingType_Cone,
-	SwingType_Pyramid,
-	_SwingType_Count,
-	_SwingType_Force32 = 2147483647,
+	Cone,
+	Pyramid,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 SixDOFConstraintAxis :: enum c.int {
-	SixDOFConstraintAxis_TranslationX,
-	SixDOFConstraintAxis_TranslationY,
-	SixDOFConstraintAxis_TranslationZ,
-	SixDOFConstraintAxis_RotationX,
-	SixDOFConstraintAxis_RotationY,
-	SixDOFConstraintAxis_RotationZ,
-	_SixDOFConstraintAxis_Num,
-	_SixDOFConstraintAxis_NumTranslation = 3,
-	_SixDOFConstraintAxis_Force32 = 2147483647,
+	TranslationX,
+	TranslationY,
+	TranslationZ,
+	RotationX,
+	RotationY,
+	RotationZ,
+	_Num,
+	_NumTranslation = 3,
+	_Force32 = 2147483647,
 }
 
 SpringMode :: enum c.int {
-	SpringMode_FrequencyAndDamping = 0,
-	SpringMode_StiffnessAndDamping = 1,
-	_SpringMode_Count,
-	_SpringMode_Force32 = 2147483647,
+	FrequencyAndDamping = 0,
+	StiffnessAndDamping = 1,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 /// Defines how to color soft body constraints
 SoftBodyConstraintColor :: enum c.int {
-	SoftBodyConstraintColor_ConstraintType,
-
+	ConstraintType,
 	/// Draw different types of constraints in different colors
-	SoftBodyConstraintColor_ConstraintGroup,
-
+	ConstraintGroup,
 	/// Draw constraints in the same group in the same color, non-parallel group will be red
-	SoftBodyConstraintColor_ConstraintOrder,
-
+	ConstraintOrder,
 	/// Draw constraints in the same group in the same color, non-parallel group will be red, and order within each group will be indicated with gradient
-	_SoftBodyConstraintColor_Count,
-
+	_Count,
 	/// Draw constraints in the same group in the same color, non-parallel group will be red, and order within each group will be indicated with gradient
-	_SoftBodyConstraintColor_Force32 = 2147483647,
+	_Force32 = 2147483647,
 }
 
 BodyManager_ShapeColor :: enum c.int {
-	BodyManager_ShapeColor_InstanceColor,   ///< Random color per instance
-	BodyManager_ShapeColor_ShapeTypeColor,  ///< Convex = green, scaled = yellow, compound = orange, mesh = red
-	BodyManager_ShapeColor_MotionTypeColor, ///< Static = grey, keyframed = green, dynamic = random color per instance
-	BodyManager_ShapeColor_SleepColor,      ///< Static = grey, keyframed = green, dynamic = yellow, sleeping = red
-	BodyManager_ShapeColor_IslandColor,     ///< Static = grey, active = random color per island, sleeping = light grey
-	BodyManager_ShapeColor_MaterialColor,   ///< Color as defined by the PhysicsMaterial of the shape
-	_BodyManager_ShapeColor_Count,
-	_BodyManager_ShapeColor_Force32 = 2147483647,
+	InstanceColor,   ///< Random color per instance
+	ShapeTypeColor,  ///< Convex = green, scaled = yellow, compound = orange, mesh = red
+	MotionTypeColor, ///< Static = grey, keyframed = green, dynamic = random color per instance
+	SleepColor,      ///< Static = grey, keyframed = green, dynamic = yellow, sleeping = red
+	IslandColor,     ///< Static = grey, active = random color per island, sleeping = light grey
+	MaterialColor,   ///< Color as defined by the PhysicsMaterial of the shape
+	_Count,
+	_Force32 = 2147483647,
 }
 
 DebugRenderer_CastShadow :: enum c.int {
-	DebugRenderer_CastShadow_On = 0,  ///< This shape should cast a shadow
-	DebugRenderer_CastShadow_Off = 1, ///< This shape should not cast a shadow
-	_DebugRenderer_CastShadow_Count,
-	_DebugRenderer_CastShadow_Force32 = 2147483647,
+	On = 0,  ///< This shape should cast a shadow
+	Off = 1, ///< This shape should not cast a shadow
+	_Count,
+	_Force32 = 2147483647,
 }
 
 DebugRenderer_DrawMode :: enum c.int {
-	DebugRenderer_DrawMode_Solid = 0,     ///< Draw as a solid shape
-	DebugRenderer_DrawMode_Wireframe = 1, ///< Draw as wireframe
-	_DebugRenderer_DrawMode_Count,
-	_DebugRenderer_DrawMode_Force32 = 2147483647,
+	Solid = 0,     ///< Draw as a solid shape
+	Wireframe = 1, ///< Draw as wireframe
+	_Count,
+	_Force32 = 2147483647,
 }
 
 Mesh_Shape_BuildQuality :: enum c.int {
-	Mesh_Shape_BuildQuality_FavorRuntimePerformance = 0,
-	Mesh_Shape_BuildQuality_FavorBuildSpeed = 1,
-	_Mesh_Shape_BuildQuality_Count,
-	_Mesh_Shape_BuildQuality_Force32 = 2147483647,
+	FavorRuntimePerformance = 0,
+	FavorBuildSpeed = 1,
+	_Count,
+	_Force32 = 2147483647,
 }
 
 TransmissionMode :: enum c.int {
-	TransmissionMode_Auto = 0,
-	TransmissionMode_Manual = 1,
-	_TransmissionMode_Count,
-	_TransmissionMode_Force32 = 2147483647,
+	Auto = 0,
+	Manual = 1,
+	_Count,
+	_Force32 = 2147483647,
 }
 
+
+/* Callbacks */
+CastRayResultCallback :: proc "c" (rawptr, ^RayCastResult)
+
+RayCastBodyResultCallback :: proc "c" (rawptr, ^BroadPhaseCastResult)
+
+CollideShapeBodyResultCallback :: proc "c" (rawptr, BodyID)
+
+CollidePointResultCallback :: proc "c" (rawptr, ^CollidePointResult)
+
+CollideShapeResultCallback :: proc "c" (rawptr, ^CollideShapeResult)
+
+CastShapeResultCallback :: proc "c" (rawptr, ^ShapeCastResult)
+
+CastRayCollectorCallback :: proc "c" (rawptr, ^RayCastResult) -> f32
+
+RayCastBodyCollectorCallback :: proc "c" (rawptr, ^BroadPhaseCastResult) -> f32
+
+CollideShapeBodyCollectorCallback :: proc "c" (rawptr, BodyID) -> f32
+
+CollidePointCollectorCallback :: proc "c" (rawptr, ^CollidePointResult) -> f32
+
+CollideShapeCollectorCallback :: proc "c" (rawptr, ^CollideShapeResult) -> f32
+
+CastShapeCollectorCallback :: proc "c" (rawptr, ^ShapeCastResult) -> f32
+
+TraceFunc :: proc "c" (cstring)
+
+AssertFailureFunc :: proc "c" (cstring, cstring, cstring, u32) -> bool
+
+JobFunction :: proc "c" (rawptr)
+
+QueueJobCallback :: proc "c" (rawptr, JobFunction, rawptr)
+
+QueueJobsCallback :: proc "c" (rawptr, JobFunction, ^rawptr, u32)
+
+
+/* Structs */
 Vec3 :: struct {
 	x: f32,
 	y: f32,
@@ -452,12 +494,6 @@ Matrix4x4 :: struct {
 	m31, m32, m33, m34: f32,
 	m41, m42, m43, m44: f32,
 }
-
-RVec3 :: Vec3
-
-RMatrix4x4 :: Matrix4x4
-
-Color :: u32
 
 AABox :: struct {
 	min: Vec3,
@@ -498,14 +534,12 @@ CollideSettingsBase :: struct {
 	activeEdgeMovementDirection: Vec3,             /* = Vec3::sZero()*/
 }
 
-/* CollideShapeSettings */
 CollideShapeSettings :: struct {
 	base:                  CollideSettingsBase, /* Inherics CollideSettingsBase */
 	maxSeparationDistance: f32,                 /* = 0.0f*/
 	backFaceMode:          BackFaceMode,        /* = BackFaceMode_IgnoreBackFaces*/
 }
 
-/* ShapeCastSettings */
 ShapeCastSettings :: struct {
 	base:                            CollideSettingsBase, /* Inherics CollideSettingsBase */
 	backFaceModeTriangles:           BackFaceMode,        /* = BackFaceMode_IgnoreBackFaces*/
@@ -617,30 +651,6 @@ CollisionGroup :: struct {
 	groupID:     CollisionGroupID,
 	subGroupID:  CollisionSubGroupID,
 }
-
-CastRayResultCallback :: proc "c" (rawptr, ^RayCastResult)
-
-RayCastBodyResultCallback :: proc "c" (rawptr, ^BroadPhaseCastResult)
-
-CollideShapeBodyResultCallback :: proc "c" (rawptr, BodyID)
-
-CollidePointResultCallback :: proc "c" (rawptr, ^CollidePointResult)
-
-CollideShapeResultCallback :: proc "c" (rawptr, ^CollideShapeResult)
-
-CastShapeResultCallback :: proc "c" (rawptr, ^ShapeCastResult)
-
-CastRayCollectorCallback :: proc "c" (rawptr, ^RayCastResult) -> f32
-
-RayCastBodyCollectorCallback :: proc "c" (rawptr, ^BroadPhaseCastResult) -> f32
-
-CollideShapeBodyCollectorCallback :: proc "c" (rawptr, BodyID) -> f32
-
-CollidePointCollectorCallback :: proc "c" (rawptr, ^CollidePointResult) -> f32
-
-CollideShapeCollectorCallback :: proc "c" (rawptr, ^CollideShapeResult) -> f32
-
-CastShapeCollectorCallback :: proc "c" (rawptr, ^ShapeCastResult) -> f32
 
 CollisionEstimationResultImpulse :: struct {
 	contactImpulse:   f32,
@@ -813,7 +823,6 @@ CharacterBaseSettings :: struct {
 	shape:                       ^Shape,
 }
 
-/* Character */
 CharacterSettings :: struct {
 	base:          CharacterBaseSettings, /* Inherics CharacterBaseSettings */
 	layer:         ObjectLayer,
@@ -823,7 +832,6 @@ CharacterSettings :: struct {
 	allowedDOFs:   AllowedDOFs,
 }
 
-/* CharacterVirtual */
 CharacterVirtualSettings :: struct {
 	base:                      CharacterBaseSettings, /* Inherics CharacterBaseSettings */
 	ID:                        CharacterID,
@@ -870,16 +878,6 @@ CharacterVirtualContact :: struct {
 	wasDiscarded:     bool,
 	canPushCharacter: bool,
 }
-
-TraceFunc :: proc "c" (cstring)
-
-AssertFailureFunc :: proc "c" (cstring, cstring, cstring, u32) -> bool
-
-JobFunction :: proc "c" (rawptr)
-
-QueueJobCallback :: proc "c" (rawptr, JobFunction, rawptr)
-
-QueueJobsCallback :: proc "c" (rawptr, JobFunction, ^rawptr, u32)
 
 JobSystemThreadPoolConfig :: struct {
 	maxJobs:     u32,
@@ -936,7 +934,6 @@ PhysicsSettings :: struct {
 	checkActiveEdges:                     bool,
 }
 
-/* PhysicsStepListener */
 PhysicsStepListenerContext :: struct {
 	deltaTime:     f32,
 	isFirstStep:   bool,
@@ -948,34 +945,28 @@ PhysicsStepListener_Procs :: struct {
 	OnStep: proc "c" (rawptr, ^PhysicsStepListenerContext),
 }
 
-/* BroadPhaseLayerFilter_Procs */
 BroadPhaseLayerFilter_Procs :: struct {
 	ShouldCollide: proc "c" (rawptr, BroadPhaseLayer) -> bool,
 }
 
-/* ObjectLayerFilter */
 ObjectLayerFilter_Procs :: struct {
 	ShouldCollide: proc "c" (rawptr, ObjectLayer) -> bool,
 }
 
-/* BodyFilter */
 BodyFilter_Procs :: struct {
 	ShouldCollide:       proc "c" (rawptr, BodyID) -> bool,
 	ShouldCollideLocked: proc "c" (rawptr, ^Body) -> bool,
 }
 
-/* ShapeFilter */
 ShapeFilter_Procs :: struct {
 	ShouldCollide:  proc "c" (rawptr, ^Shape, ^SubShapeID) -> bool,
 	ShouldCollide2: proc "c" (rawptr, ^Shape, ^SubShapeID, ^Shape, ^SubShapeID) -> bool,
 }
 
-/* SimShapeFilter */
 SimShapeFilter_Procs :: struct {
 	ShouldCollide: proc "c" (rawptr, ^Body, ^Shape, ^SubShapeID, ^Body, ^Shape, ^SubShapeID) -> bool,
 }
 
-/* Contact listener */
 ContactListener_Procs :: struct {
 	OnContactValidate:  proc "c" (rawptr, ^Body, ^Body, ^RVec3, ^CollideShapeResult) -> ValidateResult,
 	OnContactAdded:     proc "c" (rawptr, ^Body, ^Body, ^ContactManifold, ^ContactSettings),
@@ -983,18 +974,15 @@ ContactListener_Procs :: struct {
 	OnContactRemoved:   proc "c" (rawptr, ^SubShapeIDPair),
 }
 
-/* BodyActivationListener */
 BodyActivationListener_Procs :: struct {
 	OnBodyActivated:   proc "c" (rawptr, BodyID, i64),
 	OnBodyDeactivated: proc "c" (rawptr, BodyID, i64),
 }
 
-/* BodyDrawFilter */
 BodyDrawFilter_Procs :: struct {
 	ShouldDraw: proc "c" (rawptr, ^Body) -> bool,
 }
 
-/* CharacterContactListener */
 CharacterContactListener_Procs :: struct {
 	OnAdjustBodyVelocity:        proc "c" (rawptr, ^CharacterVirtual, ^Body, ^Vec3, ^Vec3),
 	OnContactValidate:           proc "c" (rawptr, ^CharacterVirtual, BodyID, SubShapeID) -> bool,
@@ -1009,20 +997,17 @@ CharacterContactListener_Procs :: struct {
 	OnCharacterContactSolve:     proc "c" (rawptr, ^CharacterVirtual, ^CharacterVirtual, SubShapeID, ^RVec3, ^Vec3, ^Vec3, ^PhysicsMaterial, ^Vec3, ^Vec3),
 }
 
-/* CharacterVsCharacterCollision */
 CharacterVsCharacterCollision_Procs :: struct {
 	CollideCharacter: proc "c" (rawptr, ^CharacterVirtual, ^RMatrix4x4, ^CollideShapeSettings, ^RVec3),
 	CastCharacter:    proc "c" (rawptr, ^CharacterVirtual, ^RMatrix4x4, ^Vec3, ^ShapeCastSettings, ^RVec3),
 }
 
-/* DebugRenderer */
 DebugRenderer_Procs :: struct {
 	DrawLine:     proc "c" (rawptr, ^RVec3, ^RVec3, Color),
 	DrawTriangle: proc "c" (rawptr, ^RVec3, ^RVec3, ^RVec3, Color, DebugRenderer_CastShadow),
 	DrawText3D:   proc "c" (rawptr, ^RVec3, cstring, Color, f32),
 }
 
-/* Skeleton */
 SkeletonJoint :: struct {
 	name:             cstring,
 	parentName:       cstring,
@@ -1081,27 +1066,14 @@ VehicleEngineSettings :: struct {
 }
 
 
-when ODIN_OS == .Windows {
-	// @(extra_linker_flags="-ltcg")
-	// @(extra_linker_flags="/NODEFAULTLIB:LIBCMTD")
-    foreign import lib {
-		"windows/Jolt.lib",
-		// "windows/joltc.dll",
-		"windows/joltc.lib",
-    }
-} else {
-	#panic("No lib.")
-    // @(extra_linker_flags="-lstdc++")
-    // foreign import lib {
-        // "build/jolt.lib",
-    // }
-}
-
 @(default_calling_convention="c", link_prefix="JPH_")
 foreign lib {
+	/* Job System */
 	JobSystemThreadPool_Create :: proc(config: ^JobSystemThreadPoolConfig) -> ^JobSystem ---
 	JobSystemCallback_Create   :: proc(config: ^JobSystemConfig) -> ^JobSystem ---
 	JobSystem_Destroy          :: proc(jobSystem: ^JobSystem) ---
+
+	/* Setup */
 	Init                       :: proc() -> bool ---
 	Shutdown                   :: proc() ---
 	SetTraceHandler            :: proc(handler: TraceFunc) ---
@@ -1130,7 +1102,11 @@ foreign lib {
 	/* ObjectVsBroadPhaseLayerFilter */
 	ObjectVsBroadPhaseLayerFilterMask_Create   :: proc(broadPhaseLayerInterface: ^BroadPhaseLayerInterface) -> ^ObjectVsBroadPhaseLayerFilter ---
 	ObjectVsBroadPhaseLayerFilterTable_Create  :: proc(broadPhaseLayerInterface: ^BroadPhaseLayerInterface, numBroadPhaseLayers: u32, objectLayerPairFilter: ^ObjectLayerPairFilter, numObjectLayers: u32) -> ^ObjectVsBroadPhaseLayerFilter ---
+
+	/* DrawSettings */
 	DrawSettings_InitDefault                   :: proc(settings: ^DrawSettings) ---
+
+	/* PhysicsSystem */
 	PhysicsSystem_Create                       :: proc(settings: ^PhysicsSystemSettings) -> ^PhysicsSystem ---
 	PhysicsSystem_Destroy                      :: proc(system: ^PhysicsSystem) ---
 	PhysicsSystem_SetPhysicsSettings           :: proc(system: ^PhysicsSystem, settings: ^PhysicsSettings) ---
@@ -1166,6 +1142,8 @@ foreign lib {
 	PhysicsSystem_DrawConstraints              :: proc(system: ^PhysicsSystem, renderer: ^DebugRenderer) ---
 	PhysicsSystem_DrawConstraintLimits         :: proc(system: ^PhysicsSystem, renderer: ^DebugRenderer) ---
 	PhysicsSystem_DrawConstraintReferenceFrame :: proc(system: ^PhysicsSystem, renderer: ^DebugRenderer) ---
+
+	/* PhysicsStepListener */
 	PhysicsStepListener_SetProcs               :: proc(procs: ^PhysicsStepListener_Procs) ---
 	PhysicsStepListener_Create                 :: proc(userData: rawptr) -> ^PhysicsStepListener ---
 	PhysicsStepListener_Destroy                :: proc(listener: ^PhysicsStepListener) ---
@@ -1239,7 +1217,7 @@ foreign lib {
 	Matrix4x4_GetTranslation              :: proc(_matrix: ^Matrix4x4, result: ^Vec3) ---
 	Matrix4x4_GetQuaternion               :: proc(_matrix: ^Matrix4x4, result: ^Quat) ---
 
-	/* Material */
+	/* PhysicsMaterial */
 	PhysicsMaterial_Create        :: proc(name: cstring, color: u32) -> ^PhysicsMaterial ---
 	PhysicsMaterial_Destroy       :: proc(material: ^PhysicsMaterial) ---
 	PhysicsMaterial_GetDebugName  :: proc(material: ^PhysicsMaterial) -> cstring ---
@@ -1912,6 +1890,8 @@ foreign lib {
 	Body_SetUserData                            :: proc(body: ^Body, userData: u64) ---
 	Body_GetUserData                            :: proc(body: ^Body) -> u64 ---
 	Body_GetFixedToWorldBody                    :: proc() -> ^Body ---
+
+	/* BroadPhaseLayerFilter_SetProcs */
 	BroadPhaseLayerFilter_SetProcs              :: proc(procs: ^BroadPhaseLayerFilter_Procs) ---
 	BroadPhaseLayerFilter_Create                :: proc(userData: rawptr) -> ^BroadPhaseLayerFilter ---
 	BroadPhaseLayerFilter_Destroy               :: proc(filter: ^BroadPhaseLayerFilter) ---
@@ -1935,6 +1915,8 @@ foreign lib {
 	BodyActivationListener_SetProcs             :: proc(procs: ^BodyActivationListener_Procs) ---
 	BodyActivationListener_Create               :: proc(userData: rawptr) -> ^BodyActivationListener ---
 	BodyActivationListener_Destroy              :: proc(listener: ^BodyActivationListener) ---
+
+	/* BodyDraw */
 	BodyDrawFilter_SetProcs                     :: proc(procs: ^BodyDrawFilter_Procs) ---
 	BodyDrawFilter_Create                       :: proc(userData: rawptr) -> ^BodyDrawFilter ---
 	BodyDrawFilter_Destroy                      :: proc(filter: ^BodyDrawFilter) ---
@@ -2079,6 +2061,8 @@ foreign lib {
 	CollisionDispatch_CollideShapeVsShape        :: proc(shape1: ^Shape, shape2: ^Shape, scale1: ^Vec3, scale2: ^Vec3, centerOfMassTransform1: ^Matrix4x4, centerOfMassTransform2: ^Matrix4x4, collideShapeSettings: ^CollideShapeSettings, callback: CollideShapeCollectorCallback, userData: rawptr, shapeFilter: ^ShapeFilter) -> bool ---
 	CollisionDispatch_CastShapeVsShapeLocalSpace :: proc(direction: ^Vec3, shape1: ^Shape, shape2: ^Shape, scale1InShape2LocalSpace: ^Vec3, scale2: ^Vec3, centerOfMassTransform1InShape2LocalSpace: ^Matrix4x4, centerOfMassWorldTransform2: ^Matrix4x4, shapeCastSettings: ^ShapeCastSettings, callback: CastShapeCollectorCallback, userData: rawptr, shapeFilter: ^ShapeFilter) -> bool ---
 	CollisionDispatch_CastShapeVsShapeWorldSpace :: proc(direction: ^Vec3, shape1: ^Shape, shape2: ^Shape, scale1: ^Vec3, inScale2: ^Vec3, centerOfMassWorldTransform1: ^Matrix4x4, centerOfMassWorldTransform2: ^Matrix4x4, shapeCastSettings: ^ShapeCastSettings, callback: CastShapeCollectorCallback, userData: rawptr, shapeFilter: ^ShapeFilter) -> bool ---
+
+	/* DebugRenderer */
 	DebugRenderer_SetProcs                       :: proc(procs: ^DebugRenderer_Procs) ---
 	DebugRenderer_Create                         :: proc(userData: rawptr) -> ^DebugRenderer ---
 	DebugRenderer_Destroy                        :: proc(renderer: ^DebugRenderer) ---
@@ -2106,6 +2090,8 @@ foreign lib {
 	DebugRenderer_DrawSwingPyramidLimits         :: proc(renderer: ^DebugRenderer, _matrix: ^RMatrix4x4, minSwingYAngle: f32, maxSwingYAngle: f32, minSwingZAngle: f32, maxSwingZAngle: f32, edgeLength: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
 	DebugRenderer_DrawPie                        :: proc(renderer: ^DebugRenderer, center: ^RVec3, radius: f32, normal: ^Vec3, axis: ^Vec3, minAngle: f32, maxAngle: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
 	DebugRenderer_DrawTaperedCylinder            :: proc(renderer: ^DebugRenderer, inMatrix: ^RMatrix4x4, top: f32, bottom: f32, topRadius: f32, bottomRadius: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
+
+	/* Skeleton */
 	Skeleton_Create                              :: proc() -> ^Skeleton ---
 	Skeleton_Destroy                             :: proc(skeleton: ^Skeleton) ---
 	Skeleton_AddJoint                            :: proc(skeleton: ^Skeleton, name: cstring) -> u32 ---
@@ -2135,10 +2121,9 @@ foreign lib {
 	Ragdoll_IsActive                                      :: proc(ragdoll: ^Ragdoll, lockBodies: bool) -> bool ---
 	Ragdoll_ResetWarmStart                                :: proc(ragdoll: ^Ragdoll) ---
 
-	/* EstimateCollisionResponse */
 	EstimateCollisionResponse                     :: proc(body1: ^Body, body2: ^Body, manifold: ^ContactManifold, combinedFriction: f32, combinedRestitution: f32, minVelocityForRestitution: f32, numIterations: u32, result: ^CollisionEstimationResult) ---
-	WheelSettings_Init                            :: proc(settings: ^WheelSettings) ---
-	WheelSettingsWV_Init                          :: proc(settings: ^WheelSettingsWV) ---
+
+	/* VehicleConstraint */
 	VehicleConstraintSettings_Init                :: proc(settings: ^VehicleConstraintSettings) ---
 	VehicleConstraint_Create                      :: proc(body: ^Body, settings: ^VehicleConstraintSettings) -> ^VehicleConstraint ---
 	VehicleConstraint_Destroy                     :: proc(constraint: ^VehicleConstraint) ---
@@ -2147,12 +2132,12 @@ foreign lib {
 	VehicleConstraint_SetVehicleCollisionTester   :: proc(constraint: ^VehicleConstraint, tester: ^VehicleCollisionTester) ---
 
 	/* Wheel */
+	WheelSettings_Init                            :: proc(settings: ^WheelSettings) ---
+	WheelSettingsWV_Init                          :: proc(settings: ^WheelSettingsWV) ---
 	Wheel_Create          :: proc(settings: ^WheelSettings) -> ^Wheel ---
 	Wheel_Destroy         :: proc(wheel: ^Wheel) ---
 	Wheel_HasContact      :: proc(wheel: ^Wheel) -> bool ---
 	Wheel_HasHitHardPoint :: proc(wheel: ^Wheel) -> bool ---
-
-	/* WheelWV */
 	WheelWV_Create :: proc(settings: ^WheelSettingsWV) -> ^WheelWV ---
 
 	/* VehicleEngine */
