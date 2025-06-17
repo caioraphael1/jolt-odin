@@ -21,6 +21,10 @@ when ODIN_OS == .Windows {
 }
 
 
+//--------------------------------------------------------------------------------------------------
+// Constants
+//--------------------------------------------------------------------------------------------------
+
 DEFAULT_COLLISION_TOLERANCE :: 1.0-4   // float cDefaultCollisionTolerance = 1.0e-4f
 DEFAULT_PENETRATION_TOLERANCE :: 1.0-4 // float cDefaultPenetrationTolerance = 1.0e-4f
 DEFAULT_CONVEX_RADIUS :: 0.05          // float cDefaultConvexRadius = 0.05f
@@ -31,442 +35,158 @@ MAX_PHYSICS_BARRIERS :: 8              // int cMaxPhysicsBarriers = 8
 // INVALID_COLLISION_SUBGROUP_ID :: ~0
 
 
-/* Opaque Types */
-// Não obtido via return
-SharedMutex :: struct {}
-GroupFilter :: struct {}
-ShapeSettings :: struct {}
+//--------------------------------------------------------------------------------------------------
+// Opaque Types
+//--------------------------------------------------------------------------------------------------
 
-Shape :: struct {}
-	// Obtido via getshape de um body ou bodyinterface
+//---------------------------------------------------
+// Job System
+//---------------------------------------------------
+JobSystem 							:: struct {}
+SharedMutex 						:: struct {}
+BodyLockInterface 					:: struct {}
+BodyLockMultiRead 					:: struct {}
+BodyLockMultiWrite 					:: struct {}
 
-// Obtido via return
-JobSystem :: struct {}
-PhysicsSystem :: struct {}
-BroadPhaseLayerInterface :: struct {}
-ObjectLayerPairFilter :: struct {}
-ObjectVsBroadPhaseLayerFilter :: struct {}
-PhysicsMaterial :: struct {}
-GroupFilterTable :: struct {}
-ShapeFilter :: struct {}
+//---------------------------------------------------
+// Setup & Others
+//---------------------------------------------------
+PhysicsSystem 						:: struct {}
+BroadPhaseLayerInterface 			:: struct {}
+ObjectLayerPairFilter 				:: struct {}
+ObjectVsBroadPhaseLayerFilter 		:: struct {}
+PhysicsMaterial 					:: struct {}
+GroupFilterTable 					:: struct {}
+ShapeFilter 						:: struct {}
+GroupFilter 						:: struct {}
+MotionProperties 					:: struct {}
+BroadPhaseQuery 					:: struct {}
+BroadPhaseLayerFilter 				:: struct {}
+ObjectLayerFilter 					:: struct {}
+SimShapeFilter 						:: struct {}
+NarrowPhaseQuery 					:: struct {}
+ContactListener 					:: struct {}
+ContactManifold 					:: struct {}
+ContactSettings 					:: struct {}
+PhysicsStepListener 				:: struct {}
+Skeleton 							:: struct {}
+RagdollSettings 					:: struct {}
+Ragdoll 							:: struct {}
 
-// Parei aqui
-ConvexShapeSettings :: struct {}
-ConvexShape :: struct {
-	using _: Shape,
-}
-BoxShapeSettings :: struct {}
-BoxShape :: struct {
-	using _: ConvexShape,
-}
-SphereShapeSettings :: struct {}
-SphereShape :: struct {}
-PlaneShapeSettings :: struct {}
-PlaneShape :: struct {}
-TriangleShapeSettings :: struct {}
-TriangleShape :: struct {}
-CapsuleShapeSettings :: struct {}
-CapsuleShape :: struct {}
-CylinderShapeSettings :: struct {}
-CylinderShape :: struct {}
-TaperedCylinderShapeSettings :: struct {}
-TaperedCylinderShape :: struct {}
-ConvexHullShapeSettings :: struct {}
-ConvexHullShape :: struct {}
-MeshShapeSettings :: struct {}
-MeshShape :: struct {}
-HeightFieldShapeSettings :: struct {}
-HeightFieldShape :: struct {}
-TaperedCapsuleShapeSettings :: struct {}
-TaperedCapsuleShape :: struct {}
-CompoundShapeSettings :: struct {}
-CompoundShape :: struct {}
-StaticCompoundShapeSettings :: struct {}
-StaticCompoundShape :: struct {}
-MutableCompoundShapeSettings :: struct {}
-MutableCompoundShape :: struct {}
-DecoratedShape :: struct {}
-RotatedTranslatedShapeSettings :: struct {}
-RotatedTranslatedShape :: struct {}
-ScaledShapeSettings :: struct {}
-ScaledShape :: struct {}
-OffsetCenterOfMassShapeSettings :: struct {}
-OffsetCenterOfMassShape :: struct {}
-EmptyShapeSettings :: struct {}
-EmptyShape :: struct {}
-BodyCreationSettings :: struct {}
-SoftBodyCreationSettings :: struct {}
-Constraint :: struct {}
-TwoBodyConstraint :: struct {}
-Body :: struct {}
-FixedConstraint :: struct {}
-DistanceConstraint :: struct {}
-PointConstraint :: struct {}
-HingeConstraint :: struct {}
-ConeConstraint :: struct {}
-SliderConstraint :: struct {}
-SwingTwistConstraint :: struct {}
-SixDOFConstraint :: struct {}
-GearConstraint :: struct {}
-BodyInterface :: struct {}
-BodyLockInterface :: struct {}
-BodyLockMultiRead :: struct {}
-BodyLockMultiWrite :: struct {}
-MotionProperties :: struct {}
-BroadPhaseQuery :: struct {}
-BroadPhaseLayerFilter :: struct {}
-ObjectLayerFilter :: struct {}
-NarrowPhaseQuery :: struct {}
-BodyFilter :: struct {}
-SimShapeFilter :: struct {}
-ContactListener :: struct {}
-BodyActivationListener :: struct {}
-BodyDrawFilter :: struct {}
-ContactManifold :: struct {}
-ContactSettings :: struct {}
-CharacterBase :: struct {}
-Character :: struct {}
-CharacterVirtual :: struct {}
-CharacterContactListener :: struct {}
-CharacterVsCharacterCollision :: struct {}
-DebugRenderer :: struct {}
-Skeleton :: struct {}
-RagdollSettings :: struct {}
-Ragdoll :: struct {}
-VehicleConstraint :: struct {}
-PhysicsStepListener :: struct {}
-WheeledVehicleController :: struct {}
-VehicleCollisionTester :: struct {}
-Wheel :: struct {}
-WheelWV :: struct {}
-VehicleTransmissionSettings :: struct {}
-VehicleCollisionTesterRay :: struct {}
-VehicleCollisionTesterCastSphere :: struct {}
-VehicleCollisionTesterCastCylinder :: struct {}
-VehicleControllerSettings :: struct {}
-WheeledVehicleControllerSettings :: struct {}
+//---------------------------------------------------
+// ShapesSettings
+//---------------------------------------------------
+ShapeSettings 						:: struct {}
 
-/* Aliases */
-BodyID :: u32
-SubShapeID :: u32
-ObjectLayer :: u32
-BroadPhaseLayer :: u8
-CollisionGroupID :: u32
-CollisionSubGroupID :: u32
-CharacterID :: u32
-Color :: u32
+PlaneShapeSettings 					:: struct { using _: ShapeSettings}
+MeshShapeSettings 					:: struct { using _: ShapeSettings}
+HeightFieldShapeSettings 			:: struct { using _: ShapeSettings}
+EmptyShapeSettings 					:: struct { using _: ShapeSettings}
 
-/* 
-REAL numbers. 
-They should change when aiming for double precision.
-*/
-RVec3 :: Vec3
-RMatrix4x4 :: Matrix4x4
+ConvexShapeSettings 				:: struct { using _: ShapeSettings}
+BoxShapeSettings 					:: struct { using _: ConvexShapeSettings }
+CapsuleShapeSettings 				:: struct { using _: ConvexShapeSettings }
+ConvexHullShapeSettings 			:: struct { using _: ConvexShapeSettings }
+CylinderShapeSettings 				:: struct { using _: ConvexShapeSettings }
+SphereShapeSettings 				:: struct { using _: ConvexShapeSettings }
+TaperedCapsuleShapeSettings 		:: struct { using _: ConvexShapeSettings }
+TaperedCylinderShapeSettings 		:: struct { using _: ConvexShapeSettings }
+TriangleShapeSettings 				:: struct { using _: ConvexShapeSettings }
 
+CompoundShapeSettings 				:: struct { using _: ShapeSettings}
+MutableCompoundShapeSettings 		:: struct { using _: CompoundShapeSettings }
+StaticCompoundShapeSettings 		:: struct { using _: CompoundShapeSettings }
 
-/* Enums */
-PhysicsUpdateError :: enum c.int {
-	None = 0,
-	ManifoldCacheFull = 1,
-	BodyPairCacheFull = 2,
-	ContactConstraintsFull = 4,
-	_Count,
-	_Force32 = 2147483647,
-}
+OffsetCenterOfMassShapeSettings 	:: struct {}
+RotatedTranslatedShapeSettings 		:: struct {}
+ScaledShapeSettings 				:: struct {}
 
-BodyType :: enum c.int {
-	Rigid = 0,
-	Soft = 1,
-	_Count,
-	_Force32 = 2147483647,
-}
+//---------------------------------------------------
+// Shapes
+//---------------------------------------------------
+Shape 								:: struct {}
 
-MotionType :: enum c.int {
-	Static = 0,
-	Kinematic = 1,
-	Dynamic = 2,
-	_Count,
-	_Force32 = 2147483647,
-}
+CompoundShape 						:: struct { using _: Shape }
+StaticCompoundShape 				:: struct { using _: CompoundShape }
+MutableCompoundShape 				:: struct { using _: CompoundShape }
 
-Activation :: enum c.int {
-	Activate = 0,
-	DontActivate = 1,
-	_Count,
-	_Force32 = 2147483647,
-}
+ConvexShape 						:: struct { using _: Shape }
+BoxShape 							:: struct { using _: ConvexShape }
+CapsuleShape 						:: struct { using _: ConvexShape }
+ConvexHullShape 					:: struct { using _: ConvexShape }
+CylinderShape 						:: struct { using _: ConvexShape }
+SphereShape 						:: struct { using _: ConvexShape }
+TaperedCapsuleShape 				:: struct { using _: ConvexShape }
+TaperedCylinderShape 				:: struct { using _: ConvexShape }
+TriangleShape 						:: struct { using _: ConvexShape }
 
-ValidateResult :: enum c.int {
-	AcceptAllContactsForThisBodyPair = 0,
-	AcceptContact = 1,
-	RejectContact = 2,
-	RejectAllContactsForThisBodyPair = 3,
-	_Count,
-	_Force32 = 2147483647,
-}
+DecoratedShape 						:: struct { using _: Shape }
+OffsetCenterOfMassShape 			:: struct { using _: DecoratedShape }
+RotatedTranslatedShape 				:: struct { using _: DecoratedShape }
+ScaledShape 						:: struct { using _: DecoratedShape }
 
-ShapeType :: enum c.int {
-	Convex = 0,
-	Compound = 1,
-	Decorated = 2,
-	Mesh = 3,
-	HeightField = 4,
-	SoftBody = 5,
-	User1 = 6,
-	User2 = 7,
-	User3 = 8,
-	User4 = 9,
-	_Count,
-	_Force32 = 2147483647,
-}
+EmptyShape 							:: struct { using _: Shape }
+HeightFieldShape 					:: struct { using _: Shape }
+MeshShape 							:: struct { using _: Shape }
+PlaneShape 							:: struct { using _: Shape }
 
-ShapeSubType :: enum c.int {
-	Sphere = 0,
-	Box = 1,
-	Triangle = 2,
-	Capsule = 3,
-	TaperedCapsule = 4,
-	Cylinder = 5,
-	ConvexHull = 6,
-	StaticCompound = 7,
-	MutableCompound = 8,
-	RotatedTranslated = 9,
-	Scaled = 10,
-	OffsetCenterOfMass = 11,
-	Mesh = 12,
-	HeightField = 13,
-	SoftBody = 14,
-	_Count,
-	_Force32 = 2147483647,
-}
+//---------------------------------------------------
+// Body
+//---------------------------------------------------
+Body 								:: struct {}
+BodyInterface 						:: struct {}
+BodyFilter 							:: struct {}
+BodyActivationListener 				:: struct {}
+BodyCreationSettings 				:: struct {}
+SoftBodyCreationSettings 			:: struct {}
 
-ConstraintType :: enum c.int {
-	Constraint = 0,
-	TwoBodyConstraint = 1,
-	_Count,
-	_Force32 = 2147483647,
-}
+//---------------------------------------------------
+// Character
+//---------------------------------------------------
+CharacterBase 						:: struct {}
+Character 							:: struct {}
+CharacterVirtual 					:: struct {}
+CharacterContactListener 			:: struct {}
+CharacterVsCharacterCollision 		:: struct {}
 
-ConstraintSubType :: enum c.int {
-	Fixed = 0,
-	Point = 1,
-	Hinge = 2,
-	Slider = 3,
-	Distance = 4,
-	Cone = 5,
-	SwingTwist = 6,
-	SixDOF = 7,
-	Path = 8,
-	Vehicle = 9,
-	RackAndPinion = 10,
-	Gear = 11,
-	Pulley = 12,
-	User1 = 13,
-	User2 = 14,
-	User3 = 15,
-	User4 = 16,
-	_Count,
-	_Force32 = 2147483647,
-}
+//---------------------------------------------------
+// Constraints
+//---------------------------------------------------
+Constraint 							:: struct {}
+TwoBodyConstraint 					:: struct {}
+FixedConstraint 					:: struct {}
+DistanceConstraint 					:: struct {}
+PointConstraint 					:: struct {}
+HingeConstraint 					:: struct {}
+ConeConstraint 						:: struct {}
+SliderConstraint 					:: struct {}
+SwingTwistConstraint 				:: struct {}
+SixDOFConstraint 					:: struct {}
+GearConstraint 						:: struct {}
+VehicleConstraint 					:: struct {}
 
-ConstraintSpace :: enum c.int {
-	LocalToBodyCOM = 0,
-	WorldSpace = 1,
-	_Count,
-	_Force32 = 2147483647,
-}
+//---------------------------------------------------
+// Vehicle
+//---------------------------------------------------
+VehicleTransmissionSettings 		:: struct {}
+VehicleCollisionTester 				:: struct {}
+VehicleCollisionTesterRay 			:: struct {}
+VehicleCollisionTesterCastSphere 	:: struct {}
+VehicleCollisionTesterCastCylinder 	:: struct {}
+VehicleControllerSettings 			:: struct {}
+Wheel 								:: struct {}
+WheelWV 							:: struct {}
+WheeledVehicleControllerSettings 	:: struct {}
+WheeledVehicleController 			:: struct {}
 
-MotionQuality :: enum c.int {
-	Discrete = 0,
-	LinearCast = 1,
-	_Count,
-	_Force32 = 2147483647,
-}
-
-OverrideMassProperties :: enum c.int {
-	CalculateMassAndInertia,
-	CalculateInertia,
-	MassAndInertiaProvided,
-	_Count,
-	_Force32 = 2147483647,
-}
-
-AllowedDOFs :: enum c.int {
-	All = 63,
-	TranslationX = 1,
-	TranslationY = 2,
-	TranslationZ = 4,
-	RotationX = 8,
-	RotationY = 16,
-	RotationZ = 32,
-	Plane2D = 35,
-	_Count,
-	_Force32 = 2147483647,
-}
-
-GroundState :: enum c.int {
-	OnGround = 0,
-	OnSteepGround = 1,
-	NotSupported = 2,
-	InAir = 3,
-	_Count,
-	_Force32 = 2147483647,
-}
-
-BackFaceMode :: enum c.int {
-	IgnoreBackFaces,
-	CollideWithBackFaces,
-	_Count,
-	_Force32 = 2147483647,
-}
-
-ActiveEdgeMode :: enum c.int {
-	CollideOnlyWithActive,
-	CollideWithAll,
-	_Count,
-	_Force32 = 2147483647,
-}
-
-CollectFacesMode :: enum c.int {
-	CollectFaces,
-	NoFaces,
-	_Count,
-	_Force32 = 2147483647,
-}
-
-MotorState :: enum c.int {
-	Off = 0,
-	Velocity = 1,
-	Position = 2,
-	_Count,
-	_Force32 = 2147483647,
-}
-
-CollisionCollectorType :: enum c.int {
-	AllHit = 0,
-	AllHitSorted = 1,
-	ClosestHit = 2,
-	AnyHit = 3,
-	_Count,
-	_Force32 = 2147483647,
-}
-
-SwingType :: enum c.int {
-	Cone,
-	Pyramid,
-	_Count,
-	_Force32 = 2147483647,
-}
-
-SixDOFConstraintAxis :: enum c.int {
-	TranslationX,
-	TranslationY,
-	TranslationZ,
-	RotationX,
-	RotationY,
-	RotationZ,
-	_Num,
-	_NumTranslation = 3,
-	_Force32 = 2147483647,
-}
-
-SpringMode :: enum c.int {
-	FrequencyAndDamping = 0,
-	StiffnessAndDamping = 1,
-	_Count,
-	_Force32 = 2147483647,
-}
-
-/// Defines how to color soft body constraints
-SoftBodyConstraintColor :: enum c.int {
-	ConstraintType,
-	/// Draw different types of constraints in different colors
-	ConstraintGroup,
-	/// Draw constraints in the same group in the same color, non-parallel group will be red
-	ConstraintOrder,
-	/// Draw constraints in the same group in the same color, non-parallel group will be red, and order within each group will be indicated with gradient
-	_Count,
-	/// Draw constraints in the same group in the same color, non-parallel group will be red, and order within each group will be indicated with gradient
-	_Force32 = 2147483647,
-}
-
-BodyManager_ShapeColor :: enum c.int {
-	InstanceColor,   ///< Random color per instance
-	ShapeTypeColor,  ///< Convex = green, scaled = yellow, compound = orange, mesh = red
-	MotionTypeColor, ///< Static = grey, keyframed = green, dynamic = random color per instance
-	SleepColor,      ///< Static = grey, keyframed = green, dynamic = yellow, sleeping = red
-	IslandColor,     ///< Static = grey, active = random color per island, sleeping = light grey
-	MaterialColor,   ///< Color as defined by the PhysicsMaterial of the shape
-	_Count,
-	_Force32 = 2147483647,
-}
-
-DebugRenderer_CastShadow :: enum c.int {
-	On = 0,  ///< This shape should cast a shadow
-	Off = 1, ///< This shape should not cast a shadow
-	_Count,
-	_Force32 = 2147483647,
-}
-
-DebugRenderer_DrawMode :: enum c.int {
-	Solid = 0,     ///< Draw as a solid shape
-	Wireframe = 1, ///< Draw as wireframe
-	_Count,
-	_Force32 = 2147483647,
-}
-
-Mesh_Shape_BuildQuality :: enum c.int {
-	FavorRuntimePerformance = 0,
-	FavorBuildSpeed = 1,
-	_Count,
-	_Force32 = 2147483647,
-}
-
-TransmissionMode :: enum c.int {
-	Auto = 0,
-	Manual = 1,
-	_Count,
-	_Force32 = 2147483647,
-}
+DebugRenderer 						:: struct {}
+BodyDrawFilter 						:: struct {}
 
 
-/* Callbacks */
-CastRayResultCallback :: proc "c" (rawptr, ^RayCastResult)
+//--------------------------------------------------------------------------------------------------
+// Math
+//--------------------------------------------------------------------------------------------------
 
-RayCastBodyResultCallback :: proc "c" (rawptr, ^BroadPhaseCastResult)
-
-CollideShapeBodyResultCallback :: proc "c" (rawptr, BodyID)
-
-CollidePointResultCallback :: proc "c" (rawptr, ^CollidePointResult)
-
-CollideShapeResultCallback :: proc "c" (rawptr, ^CollideShapeResult)
-
-CastShapeResultCallback :: proc "c" (rawptr, ^ShapeCastResult)
-
-CastRayCollectorCallback :: proc "c" (rawptr, ^RayCastResult) -> f32
-
-RayCastBodyCollectorCallback :: proc "c" (rawptr, ^BroadPhaseCastResult) -> f32
-
-CollideShapeBodyCollectorCallback :: proc "c" (rawptr, BodyID) -> f32
-
-CollidePointCollectorCallback :: proc "c" (rawptr, ^CollidePointResult) -> f32
-
-CollideShapeCollectorCallback :: proc "c" (rawptr, ^CollideShapeResult) -> f32
-
-CastShapeCollectorCallback :: proc "c" (rawptr, ^ShapeCastResult) -> f32
-
-TraceFunc :: proc "c" (cstring)
-
-AssertFailureFunc :: proc "c" (cstring, cstring, cstring, u32) -> bool
-
-JobFunction :: proc "c" (rawptr)
-
-QueueJobCallback :: proc "c" (rawptr, JobFunction, rawptr)
-
-QueueJobsCallback :: proc "c" (rawptr, JobFunction, ^rawptr, u32)
-
-
-/* Structs */
 Vec3 :: struct {
 	x: f32,
 	y: f32,
@@ -486,7 +206,6 @@ Quat :: struct {
 	z: f32,
 	w: f32,
 }
-
 // Quat_Identity :: Quat{ 0, 0, 0, 1 }
 
 Plane :: struct {
@@ -527,64 +246,343 @@ IndexedTriangle :: struct {
 	userData:      u32,
 }
 
-MassProperties :: struct {
-	mass:    f32,
-	inertia: Matrix4x4,
+/* 
+REAL numbers. 
+They should change when aiming for double precision.
+*/
+RMatrix4x4 :: Matrix4x4
+RVec3 :: Vec3
+
+//--------------------------------------------------------------------------------------------------
+// Setup
+//--------------------------------------------------------------------------------------------------
+
+TraceFunc :: proc "c" (cstring)
+AssertFailureFunc :: proc "c" (cstring, cstring, cstring, u32) -> bool
+
+
+JobSystemThreadPoolConfig :: struct {
+	maxJobs:     u32,
+	maxBarriers: u32,
+	numThreads:  i32,
 }
 
-CollideSettingsBase :: struct {
-	activeEdgeMode:              ActiveEdgeMode,   /* = ActiveEdgeMode_CollideOnlyWithActive*/
-	collectFacesMode:            CollectFacesMode, /* = CollectFacesMode_NoFaces*/
-	collisionTolerance:          f32,              /* = DEFAULT_COLLISION_TOLERANCE*/
-	penetrationTolerance:        f32,              /* = DEFAULT_PENETRATION_TOLERANCE*/
-	activeEdgeMovementDirection: Vec3,             /* = Vec3::sZero()*/
+JobSystemConfig :: struct {
+	_context:       rawptr,
+	queueJob:       QueueJobCallback,
+	queueJobs:      QueueJobsCallback,
+	maxConcurrency: u32,
+	maxBarriers:    u32,
 }
 
-CollideShapeSettings :: struct {
-	base:                  CollideSettingsBase, /* Inherics CollideSettingsBase */
-	maxSeparationDistance: f32,                 /* = 0.0f*/
-	backFaceMode:          BackFaceMode,        /* = BackFaceMode_IgnoreBackFaces*/
+JobFunction :: proc "c" (rawptr)
+QueueJobCallback :: proc "c" (rawptr, JobFunction, rawptr)
+QueueJobsCallback :: proc "c" (rawptr, JobFunction, ^rawptr, u32)
+
+BodyLockRead :: struct {
+	lockInterface: ^BodyLockInterface,
+	mutex:         ^SharedMutex,
+	body:          ^Body,
 }
 
-ShapeCastSettings :: struct {
-	base:                            CollideSettingsBase, /* Inherics CollideSettingsBase */
-	backFaceModeTriangles:           BackFaceMode,        /* = BackFaceMode_IgnoreBackFaces*/
-	backFaceModeConvex:              BackFaceMode,        /* = BackFaceMode_IgnoreBackFaces*/
-	useShrunkenShapeAndConvexRadius: bool,                /* = false*/
-	returnDeepestPoint:              bool,                /* = false*/
+BodyLockWrite :: struct {
+	lockInterface: ^BodyLockInterface,
+	mutex:         ^SharedMutex,
+	body:          ^Body,
 }
 
-RayCastSettings :: struct {
-	backFaceModeTriangles: BackFaceMode, /* = BackFaceMode_IgnoreBackFaces*/
-	backFaceModeConvex:    BackFaceMode, /* = BackFaceMode_IgnoreBackFaces*/
-	treatConvexAsSolid:    bool,         /* = true*/
+//--------------------------------------------------------------------------------------------------
+// PhysicsSystem
+//--------------------------------------------------------------------------------------------------
+
+PhysicsSystemSettings :: struct {
+	maxBodies:                     u32, /* 10240 */
+	numBodyMutexes:                u32, /* 0 */
+	maxBodyPairs:                  u32, /* 65536 */
+	maxContactConstraints:         u32, /* 10240 */
+	_padding:                      u32,
+	broadPhaseLayerInterface:      ^BroadPhaseLayerInterface,
+	objectLayerPairFilter:         ^ObjectLayerPairFilter,
+	objectVsBroadPhaseLayerFilter: ^ObjectVsBroadPhaseLayerFilter,
 }
 
-SpringSettings :: struct {
-	mode:                 SpringMode,
-	frequencyOrStiffness: f32,
-	damping:              f32,
+PhysicsSettings :: struct {
+	maxInFlightBodyPairs:                 c.int,
+	stepListenersBatchSize:               c.int,
+	stepListenerBatchesPerJob:            c.int,
+	baumgarte:                            f32,
+	speculativeContactDistance:           f32,
+	penetrationSlop:                      f32,
+	linearCastThreshold:                  f32,
+	linearCastMaxPenetration:             f32,
+	manifoldTolerance:                    f32,
+	maxPenetrationDistance:               f32,
+	bodyPairCacheMaxDeltaPositionSq:      f32,
+	bodyPairCacheCosMaxDeltaRotationDiv2: f32,
+	contactNormalCosMaxDeltaRotation:     f32,
+	contactPointPreserveLambdaMaxDistSq:  f32,
+	numVelocitySteps:                     u32,
+	numPositionSteps:                     u32,
+	minVelocityForRestitution:            f32,
+	timeBeforeSleep:                      f32,
+	pointVelocitySleepThreshold:          f32,
+	deterministicSimulation:              bool,
+	constraintWarmStart:                  bool,
+	useBodyPairContactCache:              bool,
+	useManifoldReduction:                 bool,
+	useLargeIslandSplitter:               bool,
+	allowSleeping:                        bool,
+	checkActiveEdges:                     bool,
 }
 
-MotorSettings :: struct {
-	springSettings: SpringSettings,
-	minForceLimit:  f32,
-	maxForceLimit:  f32,
-	minTorqueLimit: f32,
-	maxTorqueLimit: f32,
+PhysicsStepListenerContext :: struct {
+	deltaTime:     f32,
+	isFirstStep:   bool,
+	isLastStep:    bool,
+	physicsSystem: ^PhysicsSystem,
 }
 
-SubShapeIDPair :: struct {
-	Body1ID:     BodyID,
-	subShapeID1: SubShapeID,
-	Body2ID:     BodyID,
-	subShapeID2: SubShapeID,
+PhysicsStepListener_Procs :: struct {
+	OnStep: proc "c" (rawptr, ^PhysicsStepListenerContext),
 }
 
-BroadPhaseCastResult :: struct {
-	bodyID:   BodyID,
-	fraction: f32,
+BroadPhaseLayerFilter_Procs :: struct {
+	ShouldCollide: proc "c" (rawptr, BroadPhaseLayer) -> bool,
 }
+
+ObjectLayerFilter_Procs :: struct {
+	ShouldCollide: proc "c" (rawptr, ObjectLayer) -> bool,
+}
+
+BodyFilter_Procs :: struct {
+	ShouldCollide:       proc "c" (rawptr, BodyID) -> bool,
+	ShouldCollideLocked: proc "c" (rawptr, ^Body) -> bool,
+}
+
+ShapeFilter_Procs :: struct {
+	ShouldCollide:  proc "c" (rawptr, ^Shape, ^SubShapeID) -> bool,
+	ShouldCollide2: proc "c" (rawptr, ^Shape, ^SubShapeID, ^Shape, ^SubShapeID) -> bool,
+}
+
+SimShapeFilter_Procs :: struct {
+	ShouldCollide: proc "c" (rawptr, ^Body, ^Shape, ^SubShapeID, ^Body, ^Shape, ^SubShapeID) -> bool,
+}
+
+CollisionGroup :: struct {
+	groupFilter: ^GroupFilter,
+	groupID:     CollisionGroupID,
+	subGroupID:  CollisionSubGroupID,
+}
+
+CollisionEstimationResultImpulse :: struct {
+	contactImpulse:   f32,
+	frictionImpulse1: f32,
+	frictionImpulse2: f32,
+}
+
+CollisionEstimationResult :: struct {
+	linearVelocity1:  Vec3,
+	angularVelocity1: Vec3,
+	linearVelocity2:  Vec3,
+	angularVelocity2: Vec3,
+	tangent1:         Vec3,
+	tangent2:         Vec3,
+	impulseCount:     u32,
+	impulses:         ^CollisionEstimationResultImpulse,
+}
+
+ExtendedUpdateSettings :: struct {
+	stickToFloorStepDown:             Vec3,
+	walkStairsStepUp:                 Vec3,
+	walkStairsMinStepForward:         f32,
+	walkStairsStepForwardTest:        f32,
+	walkStairsCosAngleForwardContact: f32,
+	walkStairsStepDownExtra:          Vec3,
+}
+
+ContactListener_Procs :: struct {
+	OnContactValidate:  proc "c" (rawptr, ^Body, ^Body, ^RVec3, ^CollideShapeResult) -> ValidateResult,
+	OnContactAdded:     proc "c" (rawptr, ^Body, ^Body, ^ContactManifold, ^ContactSettings),
+	OnContactPersisted: proc "c" (rawptr, ^Body, ^Body, ^ContactManifold, ^ContactSettings),
+	OnContactRemoved:   proc "c" (rawptr, ^SubShapeIDPair),
+}
+
+BodyActivationListener_Procs :: struct {
+	OnBodyActivated:   proc "c" (rawptr, BodyID, i64),
+	OnBodyDeactivated: proc "c" (rawptr, BodyID, i64),
+}
+
+BodyDrawFilter_Procs :: struct {
+	ShouldDraw: proc "c" (rawptr, ^Body) -> bool,
+}
+
+CharacterContactListener_Procs :: struct {
+	OnAdjustBodyVelocity:        proc "c" (rawptr, ^CharacterVirtual, ^Body, ^Vec3, ^Vec3),
+	OnContactValidate:           proc "c" (rawptr, ^CharacterVirtual, BodyID, SubShapeID) -> bool,
+	OnCharacterContactValidate:  proc "c" (rawptr, ^CharacterVirtual, ^CharacterVirtual, SubShapeID) -> bool,
+	OnContactAdded:              proc "c" (rawptr, ^CharacterVirtual, BodyID, SubShapeID, ^RVec3, ^Vec3, ^CharacterContactSettings),
+	OnContactPersisted:          proc "c" (rawptr, ^CharacterVirtual, BodyID, SubShapeID, ^RVec3, ^Vec3, ^CharacterContactSettings),
+	OnContactRemoved:            proc "c" (rawptr, ^CharacterVirtual, BodyID, SubShapeID),
+	OnCharacterContactAdded:     proc "c" (rawptr, ^CharacterVirtual, ^CharacterVirtual, SubShapeID, ^RVec3, ^Vec3, ^CharacterContactSettings),
+	OnCharacterContactPersisted: proc "c" (rawptr, ^CharacterVirtual, ^CharacterVirtual, SubShapeID, ^RVec3, ^Vec3, ^CharacterContactSettings),
+	OnCharacterContactRemoved:   proc "c" (rawptr, ^CharacterVirtual, CharacterID, SubShapeID),
+	OnContactSolve:              proc "c" (rawptr, ^CharacterVirtual, BodyID, SubShapeID, ^RVec3, ^Vec3, ^Vec3, ^PhysicsMaterial, ^Vec3, ^Vec3),
+	OnCharacterContactSolve:     proc "c" (rawptr, ^CharacterVirtual, ^CharacterVirtual, SubShapeID, ^RVec3, ^Vec3, ^Vec3, ^PhysicsMaterial, ^Vec3, ^Vec3),
+}
+
+CharacterVsCharacterCollision_Procs :: struct {
+	CollideCharacter: proc "c" (rawptr, ^CharacterVirtual, ^RMatrix4x4, ^CollideShapeSettings, ^RVec3),
+	CastCharacter:    proc "c" (rawptr, ^CharacterVirtual, ^RMatrix4x4, ^Vec3, ^ShapeCastSettings, ^RVec3),
+}
+
+SkeletonJoint :: struct {
+	name:             cstring,
+	parentName:       cstring,
+	parentJointIndex: c.int,
+}
+
+CollisionCollectorType :: enum c.int {
+	AllHit = 0,
+	AllHitSorted = 1,
+	ClosestHit = 2,
+	AnyHit = 3,
+	_Count,
+	_Force32 = 2147483647,
+}
+
+SwingType :: enum c.int {
+	Cone,
+	Pyramid,
+	_Count,
+	_Force32 = 2147483647,
+}
+
+
+SpringMode :: enum c.int {
+	FrequencyAndDamping = 0,
+	StiffnessAndDamping = 1,
+	_Count,
+	_Force32 = 2147483647,
+}
+PhysicsUpdateError :: enum c.int {
+	None = 0,
+	ManifoldCacheFull = 1,
+	BodyPairCacheFull = 2,
+	ContactConstraintsFull = 4,
+	_Count,
+	_Force32 = 2147483647,
+}
+
+BodyType :: enum c.int {
+	Rigid = 0,
+	Soft = 1,
+	_Count,
+	_Force32 = 2147483647,
+}
+
+MotionType :: enum c.int {
+	Static = 0,
+	Kinematic = 1,
+	Dynamic = 2,
+	_Count,
+	_Force32 = 2147483647,
+}
+
+Activation :: enum c.int {
+	Activate = 0,
+	DontActivate = 1,
+	_Count,
+	_Force32 = 2147483647,
+}
+
+ValidateResult :: enum c.int {
+	AcceptAllContactsForThisBodyPair = 0,
+	AcceptContact = 1,
+	RejectContact = 2,
+	RejectAllContactsForThisBodyPair = 3,
+	_Count,
+	_Force32 = 2147483647,
+}
+
+BodyID :: u32
+ObjectLayer :: u32
+BroadPhaseLayer :: u8
+CollisionGroupID :: u32
+CollisionSubGroupID :: u32
+
+Color :: u32
+
+SubShapeID :: u32
+
+ShapeType :: enum c.int {
+	Convex = 0,
+	Compound = 1,
+	Decorated = 2,
+	Mesh = 3,
+	HeightField = 4,
+	SoftBody = 5,
+	User1 = 6,
+	User2 = 7,
+	User3 = 8,
+	User4 = 9,
+	_Count,
+	_Force32 = 2147483647,
+}
+
+ShapeSubType :: enum c.int {
+	Sphere = 0,
+	Box = 1,
+	Triangle = 2,
+	Capsule = 3,
+	TaperedCapsule = 4,
+	Cylinder = 5,
+	ConvexHull = 6,
+	StaticCompound = 7,
+	MutableCompound = 8,
+	RotatedTranslated = 9,
+	Scaled = 10,
+	OffsetCenterOfMass = 11,
+	Mesh = 12,
+	HeightField = 13,
+	SoftBody = 14,
+	_Count,
+	_Force32 = 2147483647,
+}
+
+/// Defines how to color soft body constraints
+SoftBodyConstraintColor :: enum c.int {
+	ConstraintType,
+	/// Draw different types of constraints in different colors
+	ConstraintGroup,
+	/// Draw constraints in the same group in the same color, non-parallel group will be red
+	ConstraintOrder,
+	/// Draw constraints in the same group in the same color, non-parallel group will be red, and order within each group will be indicated with gradient
+	_Count,
+	/// Draw constraints in the same group in the same color, non-parallel group will be red, and order within each group will be indicated with gradient
+	_Force32 = 2147483647,
+}
+
+BodyManager_ShapeColor :: enum c.int {
+	InstanceColor,   ///< Random color per instance
+	ShapeTypeColor,  ///< Convex = green, scaled = yellow, compound = orange, mesh = red
+	MotionTypeColor, ///< Static = grey, keyframed = green, dynamic = random color per instance
+	SleepColor,      ///< Static = grey, keyframed = green, dynamic = yellow, sleeping = red
+	IslandColor,     ///< Static = grey, active = random color per island, sleeping = light grey
+	MaterialColor,   ///< Color as defined by the PhysicsMaterial of the shape
+	_Count,
+	_Force32 = 2147483647,
+}
+
+Mesh_Shape_BuildQuality :: enum c.int {
+	FavorRuntimePerformance = 0,
+	FavorBuildSpeed = 1,
+	_Count,
+	_Force32 = 2147483647,
+}
+
+//--------------------------------------------------------------------------------------------------
+// Raycast
+//--------------------------------------------------------------------------------------------------
 
 RayCastResult :: struct {
 	bodyID:      BodyID,
@@ -623,57 +621,157 @@ ShapeCastResult :: struct {
 	isBackFaceHit:    bool,
 }
 
-DrawSettings :: struct {
-	drawGetSupportFunction:        bool,                    ///< Draw the GetSupport() function, used for convex collision detection
-	drawSupportDirection:          bool,                    ///< When drawing the support function, also draw which direction mapped to a specific support point
-	drawGetSupportingFace:         bool,                    ///< Draw the faces that were found colliding during collision detection
-	drawShape:                     bool,                    ///< Draw the shapes of all bodies
-	drawShapeWireframe:            bool,                    ///< When mDrawShape is true and this is true, the shapes will be drawn in wireframe instead of solid.
-	drawShapeColor:                BodyManager_ShapeColor,  ///< Coloring scheme to use for shapes
-	drawBoundingBox:               bool,                    ///< Draw a bounding box per body
-	drawCenterOfMassTransform:     bool,                    ///< Draw the center of mass for each body
-	drawWorldTransform:            bool,                    ///< Draw the world transform (which can be different than the center of mass) for each body
-	drawVelocity:                  bool,                    ///< Draw the velocity vector for each body
-	drawMassAndInertia:            bool,                    ///< Draw the mass and inertia (as the box equivalent) for each body
-	drawSleepStats:                bool,                    ///< Draw stats regarding the sleeping algorithm of each body
-	drawSoftBodyVertices:          bool,                    ///< Draw the vertices of soft bodies
-	drawSoftBodyVertexVelocities:  bool,                    ///< Draw the velocities of the vertices of soft bodies
-	drawSoftBodyEdgeConstraints:   bool,                    ///< Draw the edge constraints of soft bodies
-	drawSoftBodyBendConstraints:   bool,                    ///< Draw the bend constraints of soft bodies
-	drawSoftBodyVolumeConstraints: bool,                    ///< Draw the volume constraints of soft bodies
-	drawSoftBodySkinConstraints:   bool,                    ///< Draw the skin constraints of soft bodies
-	drawSoftBodyLRAConstraints:    bool,                    ///< Draw the LRA constraints of soft bodies
-	drawSoftBodyPredictedBounds:   bool,                    ///< Draw the predicted bounds of soft bodies
-	drawSoftBodyConstraintColor:   SoftBodyConstraintColor, ///< Coloring scheme to use for soft body constraints
-}
-
 SupportingFace :: struct {
 	count:    u32,
 	vertices: [32]Vec3,
 }
 
-CollisionGroup :: struct {
-	groupFilter: ^GroupFilter,
-	groupID:     CollisionGroupID,
-	subGroupID:  CollisionSubGroupID,
+CollideSettingsBase :: struct {
+	activeEdgeMode:              ActiveEdgeMode,   /* = ActiveEdgeMode_CollideOnlyWithActive*/
+	collectFacesMode:            CollectFacesMode, /* = CollectFacesMode_NoFaces*/
+	collisionTolerance:          f32,              /* = DEFAULT_COLLISION_TOLERANCE*/
+	penetrationTolerance:        f32,              /* = DEFAULT_PENETRATION_TOLERANCE*/
+	activeEdgeMovementDirection: Vec3,             /* = Vec3::sZero()*/
 }
 
-CollisionEstimationResultImpulse :: struct {
-	contactImpulse:   f32,
-	frictionImpulse1: f32,
-	frictionImpulse2: f32,
+CollideShapeSettings :: struct {
+	base:                  CollideSettingsBase, /* Inherics CollideSettingsBase */
+	maxSeparationDistance: f32,                 /* = 0.0f*/
+	backFaceMode:          BackFaceMode,        /* = BackFaceMode_IgnoreBackFaces*/
 }
 
-CollisionEstimationResult :: struct {
-	linearVelocity1:  Vec3,
-	angularVelocity1: Vec3,
-	linearVelocity2:  Vec3,
-	angularVelocity2: Vec3,
-	tangent1:         Vec3,
-	tangent2:         Vec3,
-	impulseCount:     u32,
-	impulses:         ^CollisionEstimationResultImpulse,
+ShapeCastSettings :: struct {
+	base:                            CollideSettingsBase, /* Inherics CollideSettingsBase */
+	backFaceModeTriangles:           BackFaceMode,        /* = BackFaceMode_IgnoreBackFaces*/
+	backFaceModeConvex:              BackFaceMode,        /* = BackFaceMode_IgnoreBackFaces*/
+	useShrunkenShapeAndConvexRadius: bool,                /* = false*/
+	returnDeepestPoint:              bool,                /* = false*/
 }
+
+RayCastSettings :: struct {
+	backFaceModeTriangles: BackFaceMode, /* = BackFaceMode_IgnoreBackFaces*/
+	backFaceModeConvex:    BackFaceMode, /* = BackFaceMode_IgnoreBackFaces*/
+	treatConvexAsSolid:    bool,         /* = true*/
+}
+
+BroadPhaseCastResult :: struct {
+	bodyID:   BodyID,
+	fraction: f32,
+}
+
+MassProperties :: struct {
+	mass:    f32,
+	inertia: Matrix4x4,
+}
+
+SpringSettings :: struct {
+	mode:                 SpringMode,
+	frequencyOrStiffness: f32,
+	damping:              f32,
+}
+
+MotorSettings :: struct {
+	springSettings: SpringSettings,
+	minForceLimit:  f32,
+	maxForceLimit:  f32,
+	minTorqueLimit: f32,
+	maxTorqueLimit: f32,
+}
+
+SubShapeIDPair :: struct {
+	Body1ID:     BodyID,
+	subShapeID1: SubShapeID,
+	Body2ID:     BodyID,
+	subShapeID2: SubShapeID,
+}
+
+RayCastBodyResultCallback :: proc "c" (rawptr, ^BroadPhaseCastResult)
+RayCastBodyCollectorCallback :: proc "c" (rawptr, ^BroadPhaseCastResult) -> f32
+CollidePointResultCallback :: proc "c" (rawptr, ^CollidePointResult)
+CollidePointCollectorCallback :: proc "c" (rawptr, ^CollidePointResult) -> f32
+CollideShapeBodyResultCallback :: proc "c" (rawptr, BodyID)
+CollideShapeBodyCollectorCallback :: proc "c" (rawptr, BodyID) -> f32
+CollideShapeResultCallback :: proc "c" (rawptr, ^CollideShapeResult)
+CollideShapeCollectorCallback :: proc "c" (rawptr, ^CollideShapeResult) -> f32
+CastRayResultCallback :: proc "c" (rawptr, ^RayCastResult)
+CastRayCollectorCallback :: proc "c" (rawptr, ^RayCastResult) -> f32
+CastShapeResultCallback :: proc "c" (rawptr, ^ShapeCastResult)
+CastShapeCollectorCallback :: proc "c" (rawptr, ^ShapeCastResult) -> f32
+
+
+//--------------------------------------------------------------------------------------------------
+// Character
+//--------------------------------------------------------------------------------------------------
+
+CharacterID :: u32
+
+CharacterBaseSettings :: struct {
+	up:                          Vec3,
+	supportingVolume:            Plane,
+	maxSlopeAngle:               f32,
+	enhancedInternalEdgeRemoval: bool,
+	shape:                       ^Shape,
+}
+
+CharacterSettings :: struct {
+	using base:    CharacterBaseSettings, /* Inherics CharacterBaseSettings */
+	layer:         ObjectLayer,
+	mass:          f32,
+	friction:      f32,
+	gravityFactor: f32,
+	allowedDOFs:   AllowedDOFs,
+}
+
+CharacterVirtualSettings :: struct {
+	using base:                CharacterBaseSettings, /* Inherics CharacterBaseSettings */
+	ID:                        CharacterID,
+	mass:                      f32,
+	maxStrength:               f32,
+	shapeOffset:               Vec3,
+	backFaceMode:              BackFaceMode,
+	predictiveContactDistance: f32,
+	maxCollisionIterations:    u32,
+	maxConstraintIterations:   u32,
+	minTimeRemaining:          f32,
+	collisionTolerance:        f32,
+	characterPadding:          f32,
+	maxNumHits:                u32,
+	hitReductionCosMaxAngle:   f32,
+	penetrationRecoverySpeed:  f32,
+	innerBodyShape:            ^Shape,
+	innerBodyIDOverride:       BodyID,
+	innerBodyLayer:            ObjectLayer,
+}
+
+CharacterContactSettings :: struct {
+	canPushCharacter:   bool,
+	canReceiveImpulses: bool,
+}
+
+CharacterVirtualContact :: struct {
+	hash:             u64,
+	bodyB:            BodyID,
+	characterIDB:     CharacterID,
+	subShapeIDB:      SubShapeID,
+	position:         RVec3,
+	linearVelocity:   Vec3,
+	contactNormal:    Vec3,
+	surfaceNormal:    Vec3,
+	distance:         f32,
+	fraction:         f32,
+	motionTypeB:      MotionType,
+	isSensorB:        bool,
+	characterB:       ^CharacterVirtual,
+	userData:         u64,
+	material:         ^PhysicsMaterial,
+	hadCollision:     bool,
+	wasDiscarded:     bool,
+	canPushCharacter: bool,
+}
+
+//--------------------------------------------------------------------------------------------------
+// Constraints
+//--------------------------------------------------------------------------------------------------
 
 ConstraintSettings :: struct {
 	enabled:                  bool,
@@ -800,224 +898,137 @@ GearConstraintSettings :: struct {
 	ratio:      f32,
 }
 
-BodyLockRead :: struct {
-	lockInterface: ^BodyLockInterface,
-	mutex:         ^SharedMutex,
-	body:          ^Body,
+SixDOFConstraintAxis :: enum c.int {
+	TranslationX,
+	TranslationY,
+	TranslationZ,
+	RotationX,
+	RotationY,
+	RotationZ,
+	_Num,
+	_NumTranslation = 3,
+	_Force32 = 2147483647,
 }
 
-BodyLockWrite :: struct {
-	lockInterface: ^BodyLockInterface,
-	mutex:         ^SharedMutex,
-	body:          ^Body,
+ConstraintType :: enum c.int {
+	Constraint = 0,
+	TwoBodyConstraint = 1,
+	_Count,
+	_Force32 = 2147483647,
 }
 
-ExtendedUpdateSettings :: struct {
-	stickToFloorStepDown:             Vec3,
-	walkStairsStepUp:                 Vec3,
-	walkStairsMinStepForward:         f32,
-	walkStairsStepForwardTest:        f32,
-	walkStairsCosAngleForwardContact: f32,
-	walkStairsStepDownExtra:          Vec3,
+ConstraintSubType :: enum c.int {
+	Fixed = 0,
+	Point = 1,
+	Hinge = 2,
+	Slider = 3,
+	Distance = 4,
+	Cone = 5,
+	SwingTwist = 6,
+	SixDOF = 7,
+	Path = 8,
+	Vehicle = 9,
+	RackAndPinion = 10,
+	Gear = 11,
+	Pulley = 12,
+	User1 = 13,
+	User2 = 14,
+	User3 = 15,
+	User4 = 16,
+	_Count,
+	_Force32 = 2147483647,
 }
 
-CharacterBaseSettings :: struct {
-	up:                          Vec3,
-	supportingVolume:            Plane,
-	maxSlopeAngle:               f32,
-	enhancedInternalEdgeRemoval: bool,
-	shape:                       ^Shape,
+ConstraintSpace :: enum c.int {
+	LocalToBodyCOM = 0,
+	WorldSpace = 1,
+	_Count,
+	_Force32 = 2147483647,
 }
 
-CharacterSettings :: struct {
-	using base:    CharacterBaseSettings, /* Inherics CharacterBaseSettings */
-	layer:         ObjectLayer,
-	mass:          f32,
-	friction:      f32,
-	gravityFactor: f32,
-	allowedDOFs:   AllowedDOFs,
+MotionQuality :: enum c.int {
+	Discrete = 0,
+	LinearCast = 1,
+	_Count,
+	_Force32 = 2147483647,
 }
 
-CharacterVirtualSettings :: struct {
-	using base:                CharacterBaseSettings, /* Inherics CharacterBaseSettings */
-	ID:                        CharacterID,
-	mass:                      f32,
-	maxStrength:               f32,
-	shapeOffset:               Vec3,
-	backFaceMode:              BackFaceMode,
-	predictiveContactDistance: f32,
-	maxCollisionIterations:    u32,
-	maxConstraintIterations:   u32,
-	minTimeRemaining:          f32,
-	collisionTolerance:        f32,
-	characterPadding:          f32,
-	maxNumHits:                u32,
-	hitReductionCosMaxAngle:   f32,
-	penetrationRecoverySpeed:  f32,
-	innerBodyShape:            ^Shape,
-	innerBodyIDOverride:       BodyID,
-	innerBodyLayer:            ObjectLayer,
+OverrideMassProperties :: enum c.int {
+	CalculateMassAndInertia,
+	CalculateInertia,
+	MassAndInertiaProvided,
+	_Count,
+	_Force32 = 2147483647,
 }
 
-CharacterContactSettings :: struct {
-	canPushCharacter:   bool,
-	canReceiveImpulses: bool,
+AllowedDOFs :: enum c.int {
+	All = 63,
+	TranslationX = 1,
+	TranslationY = 2,
+	TranslationZ = 4,
+	RotationX = 8,
+	RotationY = 16,
+	RotationZ = 32,
+	Plane2D = 35,
+	_Count,
+	_Force32 = 2147483647,
 }
 
-CharacterVirtualContact :: struct {
-	hash:             u64,
-	bodyB:            BodyID,
-	characterIDB:     CharacterID,
-	subShapeIDB:      SubShapeID,
-	position:         RVec3,
-	linearVelocity:   Vec3,
-	contactNormal:    Vec3,
-	surfaceNormal:    Vec3,
-	distance:         f32,
-	fraction:         f32,
-	motionTypeB:      MotionType,
-	isSensorB:        bool,
-	characterB:       ^CharacterVirtual,
-	userData:         u64,
-	material:         ^PhysicsMaterial,
-	hadCollision:     bool,
-	wasDiscarded:     bool,
-	canPushCharacter: bool,
+GroundState :: enum c.int {
+	OnGround = 0,
+	OnSteepGround = 1,
+	NotSupported = 2,
+	InAir = 3,
+	_Count,
+	_Force32 = 2147483647,
 }
 
-JobSystemThreadPoolConfig :: struct {
-	maxJobs:     u32,
-	maxBarriers: u32,
-	numThreads:  i32,
+BackFaceMode :: enum c.int {
+	IgnoreBackFaces,
+	CollideWithBackFaces,
+	_Count,
+	_Force32 = 2147483647,
 }
 
-JobSystemConfig :: struct {
-	_context:       rawptr,
-	queueJob:       QueueJobCallback,
-	queueJobs:      QueueJobsCallback,
-	maxConcurrency: u32,
-	maxBarriers:    u32,
+ActiveEdgeMode :: enum c.int {
+	CollideOnlyWithActive,
+	CollideWithAll,
+	_Count,
+	_Force32 = 2147483647,
 }
 
-/* PhysicsSystem */
-PhysicsSystemSettings :: struct {
-	maxBodies:                     u32, /* 10240 */
-	numBodyMutexes:                u32, /* 0 */
-	maxBodyPairs:                  u32, /* 65536 */
-	maxContactConstraints:         u32, /* 10240 */
-	_padding:                      u32,
-	broadPhaseLayerInterface:      ^BroadPhaseLayerInterface,
-	objectLayerPairFilter:         ^ObjectLayerPairFilter,
-	objectVsBroadPhaseLayerFilter: ^ObjectVsBroadPhaseLayerFilter,
+CollectFacesMode :: enum c.int {
+	CollectFaces,
+	NoFaces,
+	_Count,
+	_Force32 = 2147483647,
 }
 
-PhysicsSettings :: struct {
-	maxInFlightBodyPairs:                 c.int,
-	stepListenersBatchSize:               c.int,
-	stepListenerBatchesPerJob:            c.int,
-	baumgarte:                            f32,
-	speculativeContactDistance:           f32,
-	penetrationSlop:                      f32,
-	linearCastThreshold:                  f32,
-	linearCastMaxPenetration:             f32,
-	manifoldTolerance:                    f32,
-	maxPenetrationDistance:               f32,
-	bodyPairCacheMaxDeltaPositionSq:      f32,
-	bodyPairCacheCosMaxDeltaRotationDiv2: f32,
-	contactNormalCosMaxDeltaRotation:     f32,
-	contactPointPreserveLambdaMaxDistSq:  f32,
-	numVelocitySteps:                     u32,
-	numPositionSteps:                     u32,
-	minVelocityForRestitution:            f32,
-	timeBeforeSleep:                      f32,
-	pointVelocitySleepThreshold:          f32,
-	deterministicSimulation:              bool,
-	constraintWarmStart:                  bool,
-	useBodyPairContactCache:              bool,
-	useManifoldReduction:                 bool,
-	useLargeIslandSplitter:               bool,
-	allowSleeping:                        bool,
-	checkActiveEdges:                     bool,
+//--------------------------------------------------------------------------------------------------
+// Vehicle
+//--------------------------------------------------------------------------------------------------
+
+VehicleConstraintSettings :: struct {
+	base:              ConstraintSettings, /* Inherics ConstraintSettings */
+	up:                Vec3,
+	forward:           Vec3,
+	maxPitchRollAngle: f32,
+	wheelsCount:       u32,
+	wheels:            ^WheelSettingsWV,   /* TODO: Should be WheelSettings */
+
+	//uint32_t					antiRollBarsCount;	// NOTE: BGE: just using default values for now.
+	//VehicleAntiRollBars		antiRollBars;		// NOTE: BGE: just using default values for now.
+	controller: ^VehicleControllerSettings,
 }
 
-PhysicsStepListenerContext :: struct {
-	deltaTime:     f32,
-	isFirstStep:   bool,
-	isLastStep:    bool,
-	physicsSystem: ^PhysicsSystem,
-}
+VehicleEngineSettings :: struct {
+	maxTorque:      f32,
+	minRPM:         f32,
+	maxRPM:         f32,
 
-PhysicsStepListener_Procs :: struct {
-	OnStep: proc "c" (rawptr, ^PhysicsStepListenerContext),
-}
-
-BroadPhaseLayerFilter_Procs :: struct {
-	ShouldCollide: proc "c" (rawptr, BroadPhaseLayer) -> bool,
-}
-
-ObjectLayerFilter_Procs :: struct {
-	ShouldCollide: proc "c" (rawptr, ObjectLayer) -> bool,
-}
-
-BodyFilter_Procs :: struct {
-	ShouldCollide:       proc "c" (rawptr, BodyID) -> bool,
-	ShouldCollideLocked: proc "c" (rawptr, ^Body) -> bool,
-}
-
-ShapeFilter_Procs :: struct {
-	ShouldCollide:  proc "c" (rawptr, ^Shape, ^SubShapeID) -> bool,
-	ShouldCollide2: proc "c" (rawptr, ^Shape, ^SubShapeID, ^Shape, ^SubShapeID) -> bool,
-}
-
-SimShapeFilter_Procs :: struct {
-	ShouldCollide: proc "c" (rawptr, ^Body, ^Shape, ^SubShapeID, ^Body, ^Shape, ^SubShapeID) -> bool,
-}
-
-ContactListener_Procs :: struct {
-	OnContactValidate:  proc "c" (rawptr, ^Body, ^Body, ^RVec3, ^CollideShapeResult) -> ValidateResult,
-	OnContactAdded:     proc "c" (rawptr, ^Body, ^Body, ^ContactManifold, ^ContactSettings),
-	OnContactPersisted: proc "c" (rawptr, ^Body, ^Body, ^ContactManifold, ^ContactSettings),
-	OnContactRemoved:   proc "c" (rawptr, ^SubShapeIDPair),
-}
-
-BodyActivationListener_Procs :: struct {
-	OnBodyActivated:   proc "c" (rawptr, BodyID, i64),
-	OnBodyDeactivated: proc "c" (rawptr, BodyID, i64),
-}
-
-BodyDrawFilter_Procs :: struct {
-	ShouldDraw: proc "c" (rawptr, ^Body) -> bool,
-}
-
-CharacterContactListener_Procs :: struct {
-	OnAdjustBodyVelocity:        proc "c" (rawptr, ^CharacterVirtual, ^Body, ^Vec3, ^Vec3),
-	OnContactValidate:           proc "c" (rawptr, ^CharacterVirtual, BodyID, SubShapeID) -> bool,
-	OnCharacterContactValidate:  proc "c" (rawptr, ^CharacterVirtual, ^CharacterVirtual, SubShapeID) -> bool,
-	OnContactAdded:              proc "c" (rawptr, ^CharacterVirtual, BodyID, SubShapeID, ^RVec3, ^Vec3, ^CharacterContactSettings),
-	OnContactPersisted:          proc "c" (rawptr, ^CharacterVirtual, BodyID, SubShapeID, ^RVec3, ^Vec3, ^CharacterContactSettings),
-	OnContactRemoved:            proc "c" (rawptr, ^CharacterVirtual, BodyID, SubShapeID),
-	OnCharacterContactAdded:     proc "c" (rawptr, ^CharacterVirtual, ^CharacterVirtual, SubShapeID, ^RVec3, ^Vec3, ^CharacterContactSettings),
-	OnCharacterContactPersisted: proc "c" (rawptr, ^CharacterVirtual, ^CharacterVirtual, SubShapeID, ^RVec3, ^Vec3, ^CharacterContactSettings),
-	OnCharacterContactRemoved:   proc "c" (rawptr, ^CharacterVirtual, CharacterID, SubShapeID),
-	OnContactSolve:              proc "c" (rawptr, ^CharacterVirtual, BodyID, SubShapeID, ^RVec3, ^Vec3, ^Vec3, ^PhysicsMaterial, ^Vec3, ^Vec3),
-	OnCharacterContactSolve:     proc "c" (rawptr, ^CharacterVirtual, ^CharacterVirtual, SubShapeID, ^RVec3, ^Vec3, ^Vec3, ^PhysicsMaterial, ^Vec3, ^Vec3),
-}
-
-CharacterVsCharacterCollision_Procs :: struct {
-	CollideCharacter: proc "c" (rawptr, ^CharacterVirtual, ^RMatrix4x4, ^CollideShapeSettings, ^RVec3),
-	CastCharacter:    proc "c" (rawptr, ^CharacterVirtual, ^RMatrix4x4, ^Vec3, ^ShapeCastSettings, ^RVec3),
-}
-
-DebugRenderer_Procs :: struct {
-	DrawLine:     proc "c" (rawptr, ^RVec3, ^RVec3, Color),
-	DrawTriangle: proc "c" (rawptr, ^RVec3, ^RVec3, ^RVec3, Color, DebugRenderer_CastShadow),
-	DrawText3D:   proc "c" (rawptr, ^RVec3, cstring, Color, f32),
-}
-
-SkeletonJoint :: struct {
-	name:             cstring,
-	parentName:       cstring,
-	parentJointIndex: c.int,
+	//LinearCurve			normalizedTorque;
+	inertia: f32,
+	angularDamping: f32,
 }
 
 WheelSettings :: struct {
@@ -1048,27 +1059,67 @@ WheelSettingsWV :: struct {
 	maxHandBrakeTorque: f32,
 }
 
-VehicleConstraintSettings :: struct {
-	base:              ConstraintSettings, /* Inherics ConstraintSettings */
-	up:                Vec3,
-	forward:           Vec3,
-	maxPitchRollAngle: f32,
-	wheelsCount:       u32,
-	wheels:            ^WheelSettingsWV,   /* TODO: Should be WheelSettings */
-
-	//uint32_t					antiRollBarsCount;	// NOTE: BGE: just using default values for now.
-	//VehicleAntiRollBars		antiRollBars;		// NOTE: BGE: just using default values for now.
-	controller: ^VehicleControllerSettings,
+TransmissionMode :: enum c.int {
+	Auto = 0,
+	Manual = 1,
+	_Count,
+	_Force32 = 2147483647,
 }
 
-VehicleEngineSettings :: struct {
-	maxTorque:      f32,
-	minRPM:         f32,
-	maxRPM:         f32,
+MotorState :: enum c.int {
+	Off = 0,
+	Velocity = 1,
+	Position = 2,
+	_Count,
+	_Force32 = 2147483647,
+}
 
-	//LinearCurve			normalizedTorque;
-	inertia: f32,
-	angularDamping: f32,
+//--------------------------------------------------------------------------------------------------
+// Debug
+//--------------------------------------------------------------------------------------------------
+
+DrawSettings :: struct {
+	drawGetSupportFunction:        bool,                    ///< Draw the GetSupport() function, used for convex collision detection
+	drawSupportDirection:          bool,                    ///< When drawing the support function, also draw which direction mapped to a specific support point
+	drawGetSupportingFace:         bool,                    ///< Draw the faces that were found colliding during collision detection
+	drawShape:                     bool,                    ///< Draw the shapes of all bodies
+	drawShapeWireframe:            bool,                    ///< When mDrawShape is true and this is true, the shapes will be drawn in wireframe instead of solid.
+	drawShapeColor:                BodyManager_ShapeColor,  ///< Coloring scheme to use for shapes
+	drawBoundingBox:               bool,                    ///< Draw a bounding box per body
+	drawCenterOfMassTransform:     bool,                    ///< Draw the center of mass for each body
+	drawWorldTransform:            bool,                    ///< Draw the world transform (which can be different than the center of mass) for each body
+	drawVelocity:                  bool,                    ///< Draw the velocity vector for each body
+	drawMassAndInertia:            bool,                    ///< Draw the mass and inertia (as the box equivalent) for each body
+	drawSleepStats:                bool,                    ///< Draw stats regarding the sleeping algorithm of each body
+	drawSoftBodyVertices:          bool,                    ///< Draw the vertices of soft bodies
+	drawSoftBodyVertexVelocities:  bool,                    ///< Draw the velocities of the vertices of soft bodies
+	drawSoftBodyEdgeConstraints:   bool,                    ///< Draw the edge constraints of soft bodies
+	drawSoftBodyBendConstraints:   bool,                    ///< Draw the bend constraints of soft bodies
+	drawSoftBodyVolumeConstraints: bool,                    ///< Draw the volume constraints of soft bodies
+	drawSoftBodySkinConstraints:   bool,                    ///< Draw the skin constraints of soft bodies
+	drawSoftBodyLRAConstraints:    bool,                    ///< Draw the LRA constraints of soft bodies
+	drawSoftBodyPredictedBounds:   bool,                    ///< Draw the predicted bounds of soft bodies
+	drawSoftBodyConstraintColor:   SoftBodyConstraintColor, ///< Coloring scheme to use for soft body constraints
+}
+
+DebugRenderer_Procs :: struct {
+	DrawLine:     proc "c" (rawptr, ^RVec3, ^RVec3, Color),
+	DrawTriangle: proc "c" (rawptr, ^RVec3, ^RVec3, ^RVec3, Color, DebugRenderer_CastShadow),
+	DrawText3D:   proc "c" (rawptr, ^RVec3, cstring, Color, f32),
+}
+
+DebugRenderer_CastShadow :: enum c.int {
+	On = 0,  ///< This shape should cast a shadow
+	Off = 1, ///< This shape should not cast a shadow
+	_Count,
+	_Force32 = 2147483647,
+}
+
+DebugRenderer_DrawMode :: enum c.int {
+	Solid = 0,     ///< Draw as a solid shape
+	Wireframe = 1, ///< Draw as wireframe
+	_Count,
+	_Force32 = 2147483647,
 }
 
 
