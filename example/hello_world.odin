@@ -48,7 +48,7 @@ main :: proc() {
 	jolt.ObjectLayerPairFilterTable_EnableCollision(object_layer_pair_filter, u32(Layers.Non_Moving), u32(Layers.Moving))
 		// Floor collide with the spheres.
 		// Note: I don't know if this is necessary. 
-	jolt.ObjectLayerPairFilterTable_EnableCollision(object_layer_pair_filter, u32(Layers.Moving), u32(Layers.Moving))
+	jolt.ObjectLayerPairFilterTable_EnableCollision(object_layer_pair_filter, u32(Layers.Moving),     u32(Layers.Moving))
 		// Spheres collide with the spheres.
 
 	// We use a 1-to-1 mapping between object layers and broadphase layers
@@ -95,10 +95,10 @@ main :: proc() {
 			.Static, 
 			u32(Layers.Non_Moving)
 		)
+		defer jolt.BodyCreationSettings_Destroy(floor_settings)
 
 		// Create the actual rigid body
 		floor_id = jolt.BodyInterface_CreateAndAddBody(body_interface, floor_settings, .DontActivate)
-		jolt.BodyCreationSettings_Destroy(floor_settings)
 	}
 
 

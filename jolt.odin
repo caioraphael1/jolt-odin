@@ -52,9 +52,13 @@ ShapeFilter :: struct {}
 
 // Parei aqui
 ConvexShapeSettings :: struct {}
-ConvexShape :: struct {}
+ConvexShape :: struct {
+	using _: Shape,
+}
 BoxShapeSettings :: struct {}
-BoxShape :: struct {}
+BoxShape :: struct {
+	using _: ConvexShape,
+}
 SphereShapeSettings :: struct {}
 SphereShape :: struct {}
 PlaneShapeSettings :: struct {}
@@ -483,6 +487,8 @@ Quat :: struct {
 	w: f32,
 }
 
+Quat_Identity :: Quat{ 0, 0, 0, 1 }
+
 Plane :: struct {
 	normal:   Vec3,
 	distance: f32,
@@ -824,7 +830,7 @@ CharacterBaseSettings :: struct {
 }
 
 CharacterSettings :: struct {
-	base:          CharacterBaseSettings, /* Inherics CharacterBaseSettings */
+	base:    CharacterBaseSettings, /* Inherics CharacterBaseSettings */
 	layer:         ObjectLayer,
 	mass:          f32,
 	friction:      f32,
@@ -833,7 +839,7 @@ CharacterSettings :: struct {
 }
 
 CharacterVirtualSettings :: struct {
-	base:                      CharacterBaseSettings, /* Inherics CharacterBaseSettings */
+	base:                CharacterBaseSettings, /* Inherics CharacterBaseSettings */
 	ID:                        CharacterID,
 	mass:                      f32,
 	maxStrength:               f32,
@@ -1068,20 +1074,27 @@ VehicleEngineSettings :: struct {
 
 @(default_calling_convention="c", link_prefix="JPH_")
 foreign lib {
-	/* Job System */
-	JobSystemThreadPool_Create :: proc(config: ^JobSystemThreadPoolConfig) -> ^JobSystem ---
-	JobSystemCallback_Create   :: proc(config: ^JobSystemConfig) -> ^JobSystem ---
-	JobSystem_Destroy          :: proc(jobSystem: ^JobSystem) ---
-
-	/* Setup */
+	//--------------------------------------------------------------------------------------------------
+	// Setup
+	//--------------------------------------------------------------------------------------------------
 	Init                       :: proc() -> bool ---
 	Shutdown                   :: proc() ---
 	SetTraceHandler            :: proc(handler: TraceFunc) ---
 	SetAssertFailureHandler    :: proc(handler: AssertFailureFunc) ---
 
-	/* Structs free members */
-	CollideShapeResult_FreeMembers        :: proc(result: ^CollideShapeResult) ---
-	CollisionEstimationResult_FreeMembers :: proc(result: ^CollisionEstimationResult) ---
+	/* Job System */
+	JobSystemThreadPool_Create :: proc(config: ^JobSystemThreadPoolConfig) -> ^JobSystem ---
+		/* 
+		If JobSystemThreadPoolConfig is nil, a new configuration will be created with the default values.
+		JobSystemThreadPoolConfig{
+			maxJobs = cMaxPhysicsJobs,
+			maxBarriers = cMaxPhysicsBarriers,
+			numThreads = -1,
+		}
+		numTreads = -1 means "thread::hardware_concurrency() - 1"
+		*/
+	JobSystemCallback_Create   :: proc(config: ^JobSystemConfig) -> ^JobSystem ---
+	JobSystem_Destroy          :: proc(jobSystem: ^JobSystem) ---
 
 	/* BroadPhaseLayerInterface */
 	BroadPhaseLayerInterfaceMask_Create                      :: proc(numBroadPhaseLayers: u32) -> ^BroadPhaseLayerInterface ---
@@ -1103,10 +1116,35 @@ foreign lib {
 	ObjectVsBroadPhaseLayerFilterMask_Create   :: proc(broadPhaseLayerInterface: ^BroadPhaseLayerInterface) -> ^ObjectVsBroadPhaseLayerFilter ---
 	ObjectVsBroadPhaseLayerFilterTable_Create  :: proc(broadPhaseLayerInterface: ^BroadPhaseLayerInterface, numBroadPhaseLayers: u32, objectLayerPairFilter: ^ObjectLayerPairFilter, numObjectLayers: u32) -> ^ObjectVsBroadPhaseLayerFilter ---
 
-	/* DrawSettings */
-	DrawSettings_InitDefault                   :: proc(settings: ^DrawSettings) ---
+	/* GroupFilter/GroupFilterTable */
+	GroupFilter_Destroy                 :: proc(groupFilter: ^GroupFilter) ---
+	GroupFilter_CanCollide              :: proc(groupFilter: ^GroupFilter, group1: ^CollisionGroup, group2: ^CollisionGroup) -> bool ---
+	GroupFilterTable_Create             :: proc(numSubGroups: u32) -> ^GroupFilterTable ---
+	GroupFilterTable_DisableCollision   :: proc(table: ^GroupFilterTable, subGroup1: CollisionSubGroupID, subGroup2: CollisionSubGroupID) ---
+	GroupFilterTable_EnableCollision    :: proc(table: ^GroupFilterTable, subGroup1: CollisionSubGroupID, subGroup2: CollisionSubGroupID) ---
+	GroupFilterTable_IsCollisionEnabled :: proc(table: ^GroupFilterTable, subGroup1: CollisionSubGroupID, subGroup2: CollisionSubGroupID) -> bool ---
 
-	/* PhysicsSystem */
+	/* 	BroadPhaseQuery */
+	BroadPhaseQuery_CastRay       :: proc(query: ^BroadPhaseQuery, origin: ^Vec3, direction: ^Vec3, callback: RayCastBodyCollectorCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter) -> bool ---
+	BroadPhaseQuery_CastRay2      :: proc(query: ^BroadPhaseQuery, origin: ^Vec3, direction: ^Vec3, collectorType: CollisionCollectorType, callback: RayCastBodyResultCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter) -> bool ---
+	BroadPhaseQuery_CollideAABox  :: proc(query: ^BroadPhaseQuery, box: ^AABox, callback: CollideShapeBodyCollectorCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter) -> bool ---
+	BroadPhaseQuery_CollideSphere :: proc(query: ^BroadPhaseQuery, center: ^Vec3, radius: f32, callback: CollideShapeBodyCollectorCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter) -> bool ---
+	BroadPhaseQuery_CollidePoint  :: proc(query: ^BroadPhaseQuery, point: ^Vec3, callback: CollideShapeBodyCollectorCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter) -> bool ---
+
+	/* 	NarrowPhaseQuery */
+	NarrowPhaseQuery_CastRay       :: proc(query: ^NarrowPhaseQuery, origin: ^RVec3, direction: ^Vec3, hit: ^RayCastResult, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter, bodyFilter: ^BodyFilter) -> bool ---
+	NarrowPhaseQuery_CastRay2      :: proc(query: ^NarrowPhaseQuery, origin: ^RVec3, direction: ^Vec3, rayCastSettings: ^RayCastSettings, callback: CastRayCollectorCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
+	NarrowPhaseQuery_CastRay3      :: proc(query: ^NarrowPhaseQuery, origin: ^RVec3, direction: ^Vec3, rayCastSettings: ^RayCastSettings, collectorType: CollisionCollectorType, callback: CastRayResultCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
+	NarrowPhaseQuery_CollidePoint  :: proc(query: ^NarrowPhaseQuery, point: ^RVec3, callback: CollidePointCollectorCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
+	NarrowPhaseQuery_CollidePoint2 :: proc(query: ^NarrowPhaseQuery, point: ^RVec3, collectorType: CollisionCollectorType, callback: CollidePointResultCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
+	NarrowPhaseQuery_CollideShape  :: proc(query: ^NarrowPhaseQuery, shape: ^Shape, scale: ^Vec3, centerOfMassTransform: ^RMatrix4x4, settings: ^CollideShapeSettings, baseOffset: ^RVec3, callback: CollideShapeCollectorCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
+	NarrowPhaseQuery_CollideShape2 :: proc(query: ^NarrowPhaseQuery, shape: ^Shape, scale: ^Vec3, centerOfMassTransform: ^RMatrix4x4, settings: ^CollideShapeSettings, baseOffset: ^RVec3, collectorType: CollisionCollectorType, callback: CollideShapeResultCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
+	NarrowPhaseQuery_CastShape     :: proc(query: ^NarrowPhaseQuery, shape: ^Shape, worldTransform: ^RMatrix4x4, direction: ^Vec3, settings: ^ShapeCastSettings, baseOffset: ^RVec3, callback: CastShapeCollectorCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
+	NarrowPhaseQuery_CastShape2    :: proc(query: ^NarrowPhaseQuery, shape: ^Shape, worldTransform: ^RMatrix4x4, direction: ^Vec3, settings: ^ShapeCastSettings, baseOffset: ^RVec3, collectorType: CollisionCollectorType, callback: CastShapeResultCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
+
+	//--------------------------------------------------------------------------------------------------
+	// PhysicsSystem
+	//--------------------------------------------------------------------------------------------------
 	PhysicsSystem_Create                       :: proc(settings: ^PhysicsSystemSettings) -> ^PhysicsSystem ---
 	PhysicsSystem_Destroy                      :: proc(system: ^PhysicsSystem) ---
 	PhysicsSystem_SetPhysicsSettings           :: proc(system: ^PhysicsSystem, settings: ^PhysicsSettings) ---
@@ -1148,7 +1186,38 @@ foreign lib {
 	PhysicsStepListener_Create                 :: proc(userData: rawptr) -> ^PhysicsStepListener ---
 	PhysicsStepListener_Destroy                :: proc(listener: ^PhysicsStepListener) ---
 
-	/* Math */
+	/* ContactListener */
+	ContactListener_SetProcs                    :: proc(procs: ^ContactListener_Procs) ---
+	ContactListener_Create                      :: proc(userData: rawptr) -> ^ContactListener ---
+	ContactListener_Destroy                     :: proc(listener: ^ContactListener) ---
+
+	/* BodyActivationListener */
+	BodyActivationListener_SetProcs             :: proc(procs: ^BodyActivationListener_Procs) ---
+	BodyActivationListener_Create               :: proc(userData: rawptr) -> ^BodyActivationListener ---
+	BodyActivationListener_Destroy              :: proc(listener: ^BodyActivationListener) ---
+
+	/* Filters */
+	BroadPhaseLayerFilter_SetProcs              :: proc(procs: ^BroadPhaseLayerFilter_Procs) ---
+	BroadPhaseLayerFilter_Create                :: proc(userData: rawptr) -> ^BroadPhaseLayerFilter ---
+	BroadPhaseLayerFilter_Destroy               :: proc(filter: ^BroadPhaseLayerFilter) ---
+	ObjectLayerFilter_SetProcs                  :: proc(procs: ^ObjectLayerFilter_Procs) ---
+	ObjectLayerFilter_Create                    :: proc(userData: rawptr) -> ^ObjectLayerFilter ---
+	ObjectLayerFilter_Destroy                   :: proc(filter: ^ObjectLayerFilter) ---
+	BodyFilter_SetProcs                         :: proc(procs: ^BodyFilter_Procs) ---
+	BodyFilter_Create                           :: proc(userData: rawptr) -> ^BodyFilter ---
+	BodyFilter_Destroy                          :: proc(filter: ^BodyFilter) ---
+	ShapeFilter_SetProcs                        :: proc(procs: ^ShapeFilter_Procs) ---
+	ShapeFilter_Create                          :: proc(userData: rawptr) -> ^ShapeFilter ---
+	ShapeFilter_Destroy                         :: proc(filter: ^ShapeFilter) ---
+	ShapeFilter_GetBodyID2                      :: proc(filter: ^ShapeFilter) -> BodyID ---
+	ShapeFilter_SetBodyID2                      :: proc(filter: ^ShapeFilter, id: BodyID) ---
+	SimShapeFilter_SetProcs                     :: proc(procs: ^SimShapeFilter_Procs) ---
+	SimShapeFilter_Create                       :: proc(userData: rawptr) -> ^SimShapeFilter ---
+	SimShapeFilter_Destroy                      :: proc(filter: ^SimShapeFilter) ---
+
+	//--------------------------------------------------------------------------------------------------
+	// Math
+	//--------------------------------------------------------------------------------------------------
 	Quaternion_FromTo                     :: proc(from: ^Vec3, to: ^Vec3, quat: ^Quat) ---
 	Quat_GetAxisAngle                     :: proc(quat: ^Quat, outAxis: ^Vec3, outAngle: ^f32) ---
 	Quat_GetEulerAngles                   :: proc(quat: ^Quat, result: ^Vec3) ---
@@ -1217,21 +1286,9 @@ foreign lib {
 	Matrix4x4_GetTranslation              :: proc(_matrix: ^Matrix4x4, result: ^Vec3) ---
 	Matrix4x4_GetQuaternion               :: proc(_matrix: ^Matrix4x4, result: ^Quat) ---
 
-	/* PhysicsMaterial */
-	PhysicsMaterial_Create        :: proc(name: cstring, color: u32) -> ^PhysicsMaterial ---
-	PhysicsMaterial_Destroy       :: proc(material: ^PhysicsMaterial) ---
-	PhysicsMaterial_GetDebugName  :: proc(material: ^PhysicsMaterial) -> cstring ---
-	PhysicsMaterial_GetDebugColor :: proc(material: ^PhysicsMaterial) -> u32 ---
-
-	/* GroupFilter/GroupFilterTable */
-	GroupFilter_Destroy                 :: proc(groupFilter: ^GroupFilter) ---
-	GroupFilter_CanCollide              :: proc(groupFilter: ^GroupFilter, group1: ^CollisionGroup, group2: ^CollisionGroup) -> bool ---
-	GroupFilterTable_Create             :: proc(numSubGroups: u32) -> ^GroupFilterTable ---
-	GroupFilterTable_DisableCollision   :: proc(table: ^GroupFilterTable, subGroup1: CollisionSubGroupID, subGroup2: CollisionSubGroupID) ---
-	GroupFilterTable_EnableCollision    :: proc(table: ^GroupFilterTable, subGroup1: CollisionSubGroupID, subGroup2: CollisionSubGroupID) ---
-	GroupFilterTable_IsCollisionEnabled :: proc(table: ^GroupFilterTable, subGroup1: CollisionSubGroupID, subGroup2: CollisionSubGroupID) -> bool ---
-
-	/* ShapeSettings */
+	//--------------------------------------------------------------------------------------------------
+	// Shape
+	//--------------------------------------------------------------------------------------------------
 	ShapeSettings_Destroy     :: proc(settings: ^ShapeSettings) ---
 	ShapeSettings_GetUserData :: proc(settings: ^ShapeSettings) -> u64 ---
 	ShapeSettings_SetUserData :: proc(settings: ^ShapeSettings, userData: u64) ---
@@ -1415,7 +1472,9 @@ foreign lib {
 	EmptyShapeSettings_Create      :: proc(centerOfMass: ^Vec3) -> ^EmptyShapeSettings ---
 	EmptyShapeSettings_CreateShape :: proc(settings: ^EmptyShapeSettings) -> ^EmptyShape ---
 
-	/* BodyCreationSettings */
+	//--------------------------------------------------------------------------------------------------
+	// Body
+	//--------------------------------------------------------------------------------------------------
 	BodyCreationSettings_Create                          :: proc() -> ^BodyCreationSettings ---
 	BodyCreationSettings_Create2                         :: proc(settings: ^ShapeSettings, position: ^RVec3, rotation: ^Quat, motionType: MotionType, objectLayer: ObjectLayer) -> ^BodyCreationSettings ---
 	BodyCreationSettings_Create3                         :: proc(shape: ^Shape, position: ^RVec3, rotation: ^Quat, motionType: MotionType, objectLayer: ObjectLayer) -> ^BodyCreationSettings ---
@@ -1483,7 +1542,330 @@ foreign lib {
 	SoftBodyCreationSettings_Create  :: proc() -> ^SoftBodyCreationSettings ---
 	SoftBodyCreationSettings_Destroy :: proc(settings: ^SoftBodyCreationSettings) ---
 
-	/* Constraint */
+	/* BodyInterface */
+	BodyInterface_DestroyBody                       :: proc(interface: ^BodyInterface, bodyID: BodyID) ---
+	BodyInterface_CreateAndAddBody                  :: proc(interface: ^BodyInterface, settings: ^BodyCreationSettings, activationMode: Activation) -> BodyID ---
+	BodyInterface_CreateBody                        :: proc(interface: ^BodyInterface, settings: ^BodyCreationSettings) -> ^Body ---
+	BodyInterface_CreateBodyWithID                  :: proc(interface: ^BodyInterface, bodyID: BodyID, settings: ^BodyCreationSettings) -> ^Body ---
+	BodyInterface_CreateBodyWithoutID               :: proc(interface: ^BodyInterface, settings: ^BodyCreationSettings) -> ^Body ---
+	BodyInterface_DestroyBodyWithoutID              :: proc(interface: ^BodyInterface, body: ^Body) ---
+	BodyInterface_AssignBodyID                      :: proc(interface: ^BodyInterface, body: ^Body) -> bool ---
+	BodyInterface_AssignBodyID2                     :: proc(interface: ^BodyInterface, body: ^Body, bodyID: BodyID) -> bool ---
+	BodyInterface_UnassignBodyID                    :: proc(interface: ^BodyInterface, bodyID: BodyID) -> ^Body ---
+	BodyInterface_CreateSoftBody                    :: proc(interface: ^BodyInterface, settings: ^SoftBodyCreationSettings) -> ^Body ---
+	BodyInterface_CreateSoftBodyWithID              :: proc(interface: ^BodyInterface, bodyID: BodyID, settings: ^SoftBodyCreationSettings) -> ^Body ---
+	BodyInterface_CreateSoftBodyWithoutID           :: proc(interface: ^BodyInterface, settings: ^SoftBodyCreationSettings) -> ^Body ---
+	BodyInterface_CreateAndAddSoftBody              :: proc(interface: ^BodyInterface, settings: ^SoftBodyCreationSettings, activationMode: Activation) -> BodyID ---
+	BodyInterface_AddBody                           :: proc(interface: ^BodyInterface, bodyID: BodyID, activationMode: Activation) ---
+	BodyInterface_RemoveBody                        :: proc(interface: ^BodyInterface, bodyID: BodyID) ---
+	BodyInterface_RemoveAndDestroyBody              :: proc(interface: ^BodyInterface, bodyID: BodyID) ---
+	BodyInterface_IsActive                          :: proc(interface: ^BodyInterface, bodyID: BodyID) -> bool ---
+	BodyInterface_IsAdded                           :: proc(interface: ^BodyInterface, bodyID: BodyID) -> bool ---
+	BodyInterface_GetBodyType                       :: proc(interface: ^BodyInterface, bodyID: BodyID) -> BodyType ---
+	BodyInterface_SetLinearVelocity                 :: proc(interface: ^BodyInterface, bodyID: BodyID, velocity: ^Vec3) ---
+	BodyInterface_GetLinearVelocity                 :: proc(interface: ^BodyInterface, bodyID: BodyID, velocity: ^Vec3) ---
+	BodyInterface_GetCenterOfMassPosition           :: proc(interface: ^BodyInterface, bodyID: BodyID, position: ^RVec3) ---
+	BodyInterface_GetMotionType                     :: proc(interface: ^BodyInterface, bodyID: BodyID) -> MotionType ---
+	BodyInterface_SetMotionType                     :: proc(interface: ^BodyInterface, bodyID: BodyID, motionType: MotionType, activationMode: Activation) ---
+	BodyInterface_GetRestitution                    :: proc(interface: ^BodyInterface, bodyID: BodyID) -> f32 ---
+	BodyInterface_SetRestitution                    :: proc(interface: ^BodyInterface, bodyID: BodyID, restitution: f32) ---
+	BodyInterface_GetFriction                       :: proc(interface: ^BodyInterface, bodyID: BodyID) -> f32 ---
+	BodyInterface_SetFriction                       :: proc(interface: ^BodyInterface, bodyID: BodyID, friction: f32) ---
+	BodyInterface_SetPosition                       :: proc(interface: ^BodyInterface, bodyId: BodyID, position: ^RVec3, activationMode: Activation) ---
+	BodyInterface_GetPosition                       :: proc(interface: ^BodyInterface, bodyId: BodyID, result: ^RVec3) ---
+	BodyInterface_SetRotation                       :: proc(interface: ^BodyInterface, bodyId: BodyID, rotation: ^Quat, activationMode: Activation) ---
+	BodyInterface_GetRotation                       :: proc(interface: ^BodyInterface, bodyId: BodyID, result: ^Quat) ---
+	BodyInterface_SetPositionAndRotation            :: proc(interface: ^BodyInterface, bodyId: BodyID, position: ^RVec3, rotation: ^Quat, activationMode: Activation) ---
+	BodyInterface_SetPositionAndRotationWhenChanged :: proc(interface: ^BodyInterface, bodyId: BodyID, position: ^RVec3, rotation: ^Quat, activationMode: Activation) ---
+	BodyInterface_GetPositionAndRotation            :: proc(interface: ^BodyInterface, bodyId: BodyID, position: ^RVec3, rotation: ^Quat) ---
+	BodyInterface_SetPositionRotationAndVelocity    :: proc(interface: ^BodyInterface, bodyId: BodyID, position: ^RVec3, rotation: ^Quat, linearVelocity: ^Vec3, angularVelocity: ^Vec3) ---
+	BodyInterface_GetCollissionGroup                :: proc(interface: ^BodyInterface, bodyId: BodyID, result: ^CollisionGroup) ---
+	BodyInterface_SetCollissionGroup                :: proc(interface: ^BodyInterface, bodyId: BodyID, group: ^CollisionGroup) ---
+	BodyInterface_GetShape                          :: proc(interface: ^BodyInterface, bodyId: BodyID) -> ^Shape ---
+	BodyInterface_SetShape                          :: proc(interface: ^BodyInterface, bodyId: BodyID, shape: ^Shape, updateMassProperties: bool, activationMode: Activation) ---
+	BodyInterface_NotifyShapeChanged                :: proc(interface: ^BodyInterface, bodyId: BodyID, previousCenterOfMass: ^Vec3, updateMassProperties: bool, activationMode: Activation) ---
+	BodyInterface_ActivateBody                      :: proc(interface: ^BodyInterface, bodyId: BodyID) ---
+	BodyInterface_DeactivateBody                    :: proc(interface: ^BodyInterface, bodyId: BodyID) ---
+	BodyInterface_GetObjectLayer                    :: proc(interface: ^BodyInterface, bodyId: BodyID) -> ObjectLayer ---
+	BodyInterface_SetObjectLayer                    :: proc(interface: ^BodyInterface, bodyId: BodyID, layer: ObjectLayer) ---
+	BodyInterface_GetWorldTransform                 :: proc(interface: ^BodyInterface, bodyId: BodyID, result: ^RMatrix4x4) ---
+	BodyInterface_GetCenterOfMassTransform          :: proc(interface: ^BodyInterface, bodyId: BodyID, result: ^RMatrix4x4) ---
+	BodyInterface_MoveKinematic                     :: proc(interface: ^BodyInterface, bodyId: BodyID, targetPosition: ^RVec3, targetRotation: ^Quat, deltaTime: f32) ---
+	BodyInterface_ApplyBuoyancyImpulse              :: proc(interface: ^BodyInterface, bodyId: BodyID, surfacePosition: ^RVec3, surfaceNormal: ^Vec3, buoyancy: f32, linearDrag: f32, angularDrag: f32, fluidVelocity: ^Vec3, gravity: ^Vec3, deltaTime: f32) -> bool ---
+	BodyInterface_SetLinearAndAngularVelocity       :: proc(interface: ^BodyInterface, bodyId: BodyID, linearVelocity: ^Vec3, angularVelocity: ^Vec3) ---
+	BodyInterface_GetLinearAndAngularVelocity       :: proc(interface: ^BodyInterface, bodyId: BodyID, linearVelocity: ^Vec3, angularVelocity: ^Vec3) ---
+	BodyInterface_AddLinearVelocity                 :: proc(interface: ^BodyInterface, bodyId: BodyID, linearVelocity: ^Vec3) ---
+	BodyInterface_AddLinearAndAngularVelocity       :: proc(interface: ^BodyInterface, bodyId: BodyID, linearVelocity: ^Vec3, angularVelocity: ^Vec3) ---
+	BodyInterface_SetAngularVelocity                :: proc(interface: ^BodyInterface, bodyId: BodyID, angularVelocity: ^Vec3) ---
+	BodyInterface_GetAngularVelocity                :: proc(interface: ^BodyInterface, bodyId: BodyID, angularVelocity: ^Vec3) ---
+	BodyInterface_GetPointVelocity                  :: proc(interface: ^BodyInterface, bodyId: BodyID, point: ^RVec3, velocity: ^Vec3) ---
+	BodyInterface_AddForce                          :: proc(interface: ^BodyInterface, bodyId: BodyID, force: ^Vec3) ---
+	BodyInterface_AddForce2                         :: proc(interface: ^BodyInterface, bodyId: BodyID, force: ^Vec3, point: ^RVec3) ---
+	BodyInterface_AddTorque                         :: proc(interface: ^BodyInterface, bodyId: BodyID, torque: ^Vec3) ---
+	BodyInterface_AddForceAndTorque                 :: proc(interface: ^BodyInterface, bodyId: BodyID, force: ^Vec3, torque: ^Vec3) ---
+	BodyInterface_AddImpulse                        :: proc(interface: ^BodyInterface, bodyId: BodyID, impulse: ^Vec3) ---
+	BodyInterface_AddImpulse2                       :: proc(interface: ^BodyInterface, bodyId: BodyID, impulse: ^Vec3, point: ^RVec3) ---
+	BodyInterface_AddAngularImpulse                 :: proc(interface: ^BodyInterface, bodyId: BodyID, angularImpulse: ^Vec3) ---
+	BodyInterface_SetMotionQuality                  :: proc(interface: ^BodyInterface, bodyId: BodyID, quality: MotionQuality) ---
+	BodyInterface_GetMotionQuality                  :: proc(interface: ^BodyInterface, bodyId: BodyID) -> MotionQuality ---
+	BodyInterface_GetInverseInertia                 :: proc(interface: ^BodyInterface, bodyId: BodyID, result: ^Matrix4x4) ---
+	BodyInterface_SetGravityFactor                  :: proc(interface: ^BodyInterface, bodyId: BodyID, value: f32) ---
+	BodyInterface_GetGravityFactor                  :: proc(interface: ^BodyInterface, bodyId: BodyID) -> f32 ---
+	BodyInterface_SetUseManifoldReduction           :: proc(interface: ^BodyInterface, bodyId: BodyID, value: bool) ---
+	BodyInterface_GetUseManifoldReduction           :: proc(interface: ^BodyInterface, bodyId: BodyID) -> bool ---
+	BodyInterface_SetUserData                       :: proc(interface: ^BodyInterface, bodyId: BodyID, inUserData: u64) ---
+	BodyInterface_GetUserData                       :: proc(interface: ^BodyInterface, bodyId: BodyID) -> u64 ---
+	BodyInterface_GetMaterial                       :: proc(interface: ^BodyInterface, bodyId: BodyID, subShapeID: SubShapeID) -> ^PhysicsMaterial ---
+	BodyInterface_InvalidateContactCache            :: proc(interface: ^BodyInterface, bodyId: BodyID) ---
+
+	/* BodyLockInterface */
+	BodyLockInterface_LockRead       :: proc(lockInterface: ^BodyLockInterface, bodyID: BodyID, outLock: ^BodyLockRead) ---
+	BodyLockInterface_UnlockRead     :: proc(lockInterface: ^BodyLockInterface, ioLock: ^BodyLockRead) ---
+	BodyLockInterface_LockWrite      :: proc(lockInterface: ^BodyLockInterface, bodyID: BodyID, outLock: ^BodyLockWrite) ---
+	BodyLockInterface_UnlockWrite    :: proc(lockInterface: ^BodyLockInterface, ioLock: ^BodyLockWrite) ---
+	BodyLockInterface_LockMultiRead  :: proc(lockInterface: ^BodyLockInterface, bodyIDs: ^BodyID, count: u32) -> ^BodyLockMultiRead ---
+	BodyLockInterface_LockMultiWrite :: proc(lockInterface: ^BodyLockInterface, bodyIDs: ^BodyID, count: u32) -> ^BodyLockMultiWrite ---
+	BodyLockMultiRead_GetBody        :: proc(ioLock: ^BodyLockMultiRead, bodyIndex: u32) -> ^Body ---
+	BodyLockMultiRead_Destroy        :: proc(ioLock: ^BodyLockMultiRead) ---
+	BodyLockMultiWrite_GetBody       :: proc(ioLock: ^BodyLockMultiWrite, bodyIndex: u32) -> ^Body ---
+	BodyLockMultiWrite_Destroy       :: proc(ioLock: ^BodyLockMultiWrite) ---
+
+	/* 	Body */
+	Body_GetID                                  :: proc(body: ^Body) -> BodyID ---
+	Body_GetBodyType                            :: proc(body: ^Body) -> BodyType ---
+	Body_IsRigidBody                            :: proc(body: ^Body) -> bool ---
+	Body_IsSoftBody                             :: proc(body: ^Body) -> bool ---
+	Body_IsActive                               :: proc(body: ^Body) -> bool ---
+	Body_IsStatic                               :: proc(body: ^Body) -> bool ---
+	Body_IsKinematic                            :: proc(body: ^Body) -> bool ---
+	Body_IsDynamic                              :: proc(body: ^Body) -> bool ---
+	Body_CanBeKinematicOrDynamic                :: proc(body: ^Body) -> bool ---
+	Body_SetIsSensor                            :: proc(body: ^Body, value: bool) ---
+	Body_IsSensor                               :: proc(body: ^Body) -> bool ---
+	Body_SetCollideKinematicVsNonDynamic        :: proc(body: ^Body, value: bool) ---
+	Body_GetCollideKinematicVsNonDynamic        :: proc(body: ^Body) -> bool ---
+	Body_SetUseManifoldReduction                :: proc(body: ^Body, value: bool) ---
+	Body_GetUseManifoldReduction                :: proc(body: ^Body) -> bool ---
+	Body_GetUseManifoldReductionWithBody        :: proc(body: ^Body, other: ^Body) -> bool ---
+	Body_SetApplyGyroscopicForce                :: proc(body: ^Body, value: bool) ---
+	Body_GetApplyGyroscopicForce                :: proc(body: ^Body) -> bool ---
+	Body_SetEnhancedInternalEdgeRemoval         :: proc(body: ^Body, value: bool) ---
+	Body_GetEnhancedInternalEdgeRemoval         :: proc(body: ^Body) -> bool ---
+	Body_GetEnhancedInternalEdgeRemovalWithBody :: proc(body: ^Body, other: ^Body) -> bool ---
+	Body_GetMotionType                          :: proc(body: ^Body) -> MotionType ---
+	Body_SetMotionType                          :: proc(body: ^Body, motionType: MotionType) ---
+	Body_GetBroadPhaseLayer                     :: proc(body: ^Body) -> BroadPhaseLayer ---
+	Body_GetObjectLayer                         :: proc(body: ^Body) -> ObjectLayer ---
+	Body_GetCollissionGroup                     :: proc(body: ^Body, result: ^CollisionGroup) ---
+	Body_SetCollissionGroup                     :: proc(body: ^Body, value: ^CollisionGroup) ---
+	Body_GetAllowSleeping                       :: proc(body: ^Body) -> bool ---
+	Body_SetAllowSleeping                       :: proc(body: ^Body, allowSleeping: bool) ---
+	Body_ResetSleepTimer                        :: proc(body: ^Body) ---
+	Body_GetFriction                            :: proc(body: ^Body) -> f32 ---
+	Body_SetFriction                            :: proc(body: ^Body, friction: f32) ---
+	Body_GetRestitution                         :: proc(body: ^Body) -> f32 ---
+	Body_SetRestitution                         :: proc(body: ^Body, restitution: f32) ---
+	Body_GetLinearVelocity                      :: proc(body: ^Body, velocity: ^Vec3) ---
+	Body_SetLinearVelocity                      :: proc(body: ^Body, velocity: ^Vec3) ---
+	Body_SetLinearVelocityClamped               :: proc(body: ^Body, velocity: ^Vec3) ---
+	Body_GetAngularVelocity                     :: proc(body: ^Body, velocity: ^Vec3) ---
+	Body_SetAngularVelocity                     :: proc(body: ^Body, velocity: ^Vec3) ---
+	Body_SetAngularVelocityClamped              :: proc(body: ^Body, velocity: ^Vec3) ---
+	Body_GetPointVelocityCOM                    :: proc(body: ^Body, pointRelativeToCOM: ^Vec3, velocity: ^Vec3) ---
+	Body_GetPointVelocity                       :: proc(body: ^Body, point: ^RVec3, velocity: ^Vec3) ---
+	Body_AddForce                               :: proc(body: ^Body, force: ^Vec3) ---
+	Body_AddForceAtPosition                     :: proc(body: ^Body, force: ^Vec3, position: ^RVec3) ---
+	Body_AddTorque                              :: proc(body: ^Body, force: ^Vec3) ---
+	Body_GetAccumulatedForce                    :: proc(body: ^Body, force: ^Vec3) ---
+	Body_GetAccumulatedTorque                   :: proc(body: ^Body, force: ^Vec3) ---
+	Body_ResetForce                             :: proc(body: ^Body) ---
+	Body_ResetTorque                            :: proc(body: ^Body) ---
+	Body_ResetMotion                            :: proc(body: ^Body) ---
+	Body_GetInverseInertia                      :: proc(body: ^Body, result: ^Matrix4x4) ---
+	Body_AddImpulse                             :: proc(body: ^Body, impulse: ^Vec3) ---
+	Body_AddImpulseAtPosition                   :: proc(body: ^Body, impulse: ^Vec3, position: ^RVec3) ---
+	Body_AddAngularImpulse                      :: proc(body: ^Body, angularImpulse: ^Vec3) ---
+	Body_MoveKinematic                          :: proc(body: ^Body, targetPosition: ^RVec3, targetRotation: ^Quat, deltaTime: f32) ---
+	Body_ApplyBuoyancyImpulse                   :: proc(body: ^Body, surfacePosition: ^RVec3, surfaceNormal: ^Vec3, buoyancy: f32, linearDrag: f32, angularDrag: f32, fluidVelocity: ^Vec3, gravity: ^Vec3, deltaTime: f32) -> bool ---
+	Body_IsInBroadPhase                         :: proc(body: ^Body) -> bool ---
+	Body_IsCollisionCacheInvalid                :: proc(body: ^Body) -> bool ---
+	Body_GetShape                               :: proc(body: ^Body) -> ^Shape ---
+	Body_GetPosition                            :: proc(body: ^Body, result: ^RVec3) ---
+	Body_GetRotation                            :: proc(body: ^Body, result: ^Quat) ---
+	Body_GetWorldTransform                      :: proc(body: ^Body, result: ^RMatrix4x4) ---
+	Body_GetCenterOfMassPosition                :: proc(body: ^Body, result: ^RVec3) ---
+	Body_GetCenterOfMassTransform               :: proc(body: ^Body, result: ^RMatrix4x4) ---
+	Body_GetInverseCenterOfMassTransform        :: proc(body: ^Body, result: ^RMatrix4x4) ---
+	Body_GetWorldSpaceBounds                    :: proc(body: ^Body, result: ^AABox) ---
+	Body_GetWorldSpaceSurfaceNormal             :: proc(body: ^Body, subShapeID: SubShapeID, position: ^RVec3, normal: ^Vec3) ---
+	Body_GetMotionProperties                    :: proc(body: ^Body) -> ^MotionProperties ---
+	Body_GetMotionPropertiesUnchecked           :: proc(body: ^Body) -> ^MotionProperties ---
+	Body_SetUserData                            :: proc(body: ^Body, userData: u64) ---
+	Body_GetUserData                            :: proc(body: ^Body) -> u64 ---
+	Body_GetFixedToWorldBody                    :: proc() -> ^Body ---
+
+	//--------------------------------------------------------------------------------------------------
+	// Character
+	//--------------------------------------------------------------------------------------------------
+	CharacterBase_Destroy             :: proc(character: ^CharacterBase) ---
+	CharacterBase_GetCosMaxSlopeAngle :: proc(character: ^CharacterBase) -> f32 ---
+	CharacterBase_SetMaxSlopeAngle    :: proc(character: ^CharacterBase, maxSlopeAngle: f32) ---
+	CharacterBase_GetUp               :: proc(character: ^CharacterBase, result: ^Vec3) ---
+	CharacterBase_SetUp               :: proc(character: ^CharacterBase, value: ^Vec3) ---
+	CharacterBase_IsSlopeTooSteep     :: proc(character: ^CharacterBase, value: ^Vec3) -> bool ---
+	CharacterBase_GetShape            :: proc(character: ^CharacterBase) -> ^Shape ---
+	CharacterBase_GetGroundState      :: proc(character: ^CharacterBase) -> GroundState ---
+	CharacterBase_IsSupported         :: proc(character: ^CharacterBase) -> bool ---
+	CharacterBase_GetGroundPosition   :: proc(character: ^CharacterBase, position: ^RVec3) ---
+	CharacterBase_GetGroundNormal     :: proc(character: ^CharacterBase, normal: ^Vec3) ---
+	CharacterBase_GetGroundVelocity   :: proc(character: ^CharacterBase, velocity: ^Vec3) ---
+	CharacterBase_GetGroundMaterial   :: proc(character: ^CharacterBase) -> ^PhysicsMaterial ---
+	CharacterBase_GetGroundBodyId     :: proc(character: ^CharacterBase) -> BodyID ---
+	CharacterBase_GetGroundSubShapeId :: proc(character: ^CharacterBase) -> SubShapeID ---
+	CharacterBase_GetGroundUserData   :: proc(character: ^CharacterBase) -> u64 ---
+
+	/* CharacterSettings */
+	CharacterSettings_Init :: proc(settings: ^CharacterSettings) ---
+
+	/* Character */
+	Character_Create                      :: proc(settings: ^CharacterSettings, position: ^RVec3, rotation: ^Quat, userData: u64, system: ^PhysicsSystem) -> ^Character ---
+	Character_AddToPhysicsSystem          :: proc(character: ^Character, activationMode: Activation, lockBodies: bool) ---
+	Character_RemoveFromPhysicsSystem     :: proc(character: ^Character, lockBodies: bool) ---
+	Character_Activate                    :: proc(character: ^Character, lockBodies: bool) ---
+	Character_PostSimulation              :: proc(character: ^Character, maxSeparationDistance: f32, lockBodies: bool) ---
+	Character_SetLinearAndAngularVelocity :: proc(character: ^Character, linearVelocity: ^Vec3, angularVelocity: ^Vec3, lockBodies: bool) ---
+	Character_GetLinearVelocity           :: proc(character: ^Character, result: ^Vec3) ---
+	Character_SetLinearVelocity           :: proc(character: ^Character, value: ^Vec3, lockBodies: bool) ---
+	Character_AddLinearVelocity           :: proc(character: ^Character, value: ^Vec3, lockBodies: bool) ---
+	Character_AddImpulse                  :: proc(character: ^Character, value: ^Vec3, lockBodies: bool) ---
+	Character_GetBodyID                   :: proc(character: ^Character) -> BodyID ---
+	Character_GetPositionAndRotation      :: proc(character: ^Character, position: ^RVec3, rotation: ^Quat, lockBodies: bool) ---
+	Character_SetPositionAndRotation      :: proc(character: ^Character, position: ^RVec3, rotation: ^Quat, activationMode: Activation, lockBodies: bool) ---
+	Character_GetPosition                 :: proc(character: ^Character, position: ^RVec3, lockBodies: bool) ---
+	Character_SetPosition                 :: proc(character: ^Character, position: ^RVec3, activationMode: Activation, lockBodies: bool) ---
+	Character_GetRotation                 :: proc(character: ^Character, rotation: ^Quat, lockBodies: bool) ---
+	Character_SetRotation                 :: proc(character: ^Character, rotation: ^Quat, activationMode: Activation, lockBodies: bool) ---
+	Character_GetCenterOfMassPosition     :: proc(character: ^Character, result: ^RVec3, lockBodies: bool) ---
+	Character_GetWorldTransform           :: proc(character: ^Character, result: ^RMatrix4x4, lockBodies: bool) ---
+	Character_GetLayer                    :: proc(character: ^Character) -> ObjectLayer ---
+	Character_SetLayer                    :: proc(character: ^Character, value: ObjectLayer, lockBodies: bool) ---
+	Character_SetShape                    :: proc(character: ^Character, shape: ^Shape, maxPenetrationDepth: f32, lockBodies: bool) ---
+
+	/* CharacterVirtualSettings */
+	CharacterVirtualSettings_Init :: proc(settings: ^CharacterVirtualSettings) ---
+
+	/* CharacterVirtual */
+	CharacterVirtual_Create                             :: proc(settings: ^CharacterVirtualSettings, position: ^RVec3, rotation: ^Quat, userData: u64, system: ^PhysicsSystem) -> ^CharacterVirtual ---
+	CharacterVirtual_GetID                              :: proc(character: ^CharacterVirtual) -> CharacterID ---
+	CharacterVirtual_SetListener                        :: proc(character: ^CharacterVirtual, listener: ^CharacterContactListener) ---
+	CharacterVirtual_SetCharacterVsCharacterCollision   :: proc(character: ^CharacterVirtual, characterVsCharacterCollision: ^CharacterVsCharacterCollision) ---
+	CharacterVirtual_GetLinearVelocity                  :: proc(character: ^CharacterVirtual, velocity: ^Vec3) ---
+	CharacterVirtual_SetLinearVelocity                  :: proc(character: ^CharacterVirtual, velocity: ^Vec3) ---
+	CharacterVirtual_GetPosition                        :: proc(character: ^CharacterVirtual, position: ^RVec3) ---
+	CharacterVirtual_SetPosition                        :: proc(character: ^CharacterVirtual, position: ^RVec3) ---
+	CharacterVirtual_GetRotation                        :: proc(character: ^CharacterVirtual, rotation: ^Quat) ---
+	CharacterVirtual_SetRotation                        :: proc(character: ^CharacterVirtual, rotation: ^Quat) ---
+	CharacterVirtual_GetWorldTransform                  :: proc(character: ^CharacterVirtual, result: ^RMatrix4x4) ---
+	CharacterVirtual_GetCenterOfMassTransform           :: proc(character: ^CharacterVirtual, result: ^RMatrix4x4) ---
+	CharacterVirtual_GetMass                            :: proc(character: ^CharacterVirtual) -> f32 ---
+	CharacterVirtual_SetMass                            :: proc(character: ^CharacterVirtual, value: f32) ---
+	CharacterVirtual_GetMaxStrength                     :: proc(character: ^CharacterVirtual) -> f32 ---
+	CharacterVirtual_SetMaxStrength                     :: proc(character: ^CharacterVirtual, value: f32) ---
+	CharacterVirtual_GetPenetrationRecoverySpeed        :: proc(character: ^CharacterVirtual) -> f32 ---
+	CharacterVirtual_SetPenetrationRecoverySpeed        :: proc(character: ^CharacterVirtual, value: f32) ---
+	CharacterVirtual_GetEnhancedInternalEdgeRemoval     :: proc(character: ^CharacterVirtual) -> bool ---
+	CharacterVirtual_SetEnhancedInternalEdgeRemoval     :: proc(character: ^CharacterVirtual, value: bool) ---
+	CharacterVirtual_GetCharacterPadding                :: proc(character: ^CharacterVirtual) -> f32 ---
+	CharacterVirtual_GetMaxNumHits                      :: proc(character: ^CharacterVirtual) -> u32 ---
+	CharacterVirtual_SetMaxNumHits                      :: proc(character: ^CharacterVirtual, value: u32) ---
+	CharacterVirtual_GetHitReductionCosMaxAngle         :: proc(character: ^CharacterVirtual) -> f32 ---
+	CharacterVirtual_SetHitReductionCosMaxAngle         :: proc(character: ^CharacterVirtual, value: f32) ---
+	CharacterVirtual_GetMaxHitsExceeded                 :: proc(character: ^CharacterVirtual) -> bool ---
+	CharacterVirtual_GetShapeOffset                     :: proc(character: ^CharacterVirtual, result: ^Vec3) ---
+	CharacterVirtual_SetShapeOffset                     :: proc(character: ^CharacterVirtual, value: ^Vec3) ---
+	CharacterVirtual_GetUserData                        :: proc(character: ^CharacterVirtual) -> u64 ---
+	CharacterVirtual_SetUserData                        :: proc(character: ^CharacterVirtual, value: u64) ---
+	CharacterVirtual_GetInnerBodyID                     :: proc(character: ^CharacterVirtual) -> BodyID ---
+	CharacterVirtual_CancelVelocityTowardsSteepSlopes   :: proc(character: ^CharacterVirtual, desiredVelocity: ^Vec3, velocity: ^Vec3) ---
+	CharacterVirtual_StartTrackingContactChanges        :: proc(character: ^CharacterVirtual) ---
+	CharacterVirtual_FinishTrackingContactChanges       :: proc(character: ^CharacterVirtual) ---
+	CharacterVirtual_Update                             :: proc(character: ^CharacterVirtual, deltaTime: f32, layer: ObjectLayer, system: ^PhysicsSystem, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) ---
+	CharacterVirtual_ExtendedUpdate                     :: proc(character: ^CharacterVirtual, deltaTime: f32, settings: ^ExtendedUpdateSettings, layer: ObjectLayer, system: ^PhysicsSystem, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) ---
+	CharacterVirtual_RefreshContacts                    :: proc(character: ^CharacterVirtual, layer: ObjectLayer, system: ^PhysicsSystem, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) ---
+	CharacterVirtual_CanWalkStairs                      :: proc(character: ^CharacterVirtual, linearVelocity: ^Vec3) -> bool ---
+	CharacterVirtual_WalkStairs                         :: proc(character: ^CharacterVirtual, deltaTime: f32, stepUp: ^Vec3, stepForward: ^Vec3, stepForwardTest: ^Vec3, stepDownExtra: ^Vec3, layer: ObjectLayer, system: ^PhysicsSystem, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
+	CharacterVirtual_StickToFloor                       :: proc(character: ^CharacterVirtual, stepDown: ^Vec3, layer: ObjectLayer, system: ^PhysicsSystem, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
+	CharacterVirtual_UpdateGroundVelocity               :: proc(character: ^CharacterVirtual) ---
+	CharacterVirtual_SetShape                           :: proc(character: ^CharacterVirtual, shape: ^Shape, maxPenetrationDepth: f32, layer: ObjectLayer, system: ^PhysicsSystem, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
+	CharacterVirtual_SetInnerBodyShape                  :: proc(character: ^CharacterVirtual, shape: ^Shape) ---
+	CharacterVirtual_GetNumActiveContacts               :: proc(character: ^CharacterVirtual) -> u32 ---
+	CharacterVirtual_GetActiveContact                   :: proc(character: ^CharacterVirtual, index: u32, result: ^CharacterVirtualContact)	 ---
+	CharacterVirtual_HasCollidedWithBody                :: proc(character: ^CharacterVirtual, body: BodyID) -> bool ---
+	CharacterVirtual_HasCollidedWith                    :: proc(character: ^CharacterVirtual, other: CharacterID) -> bool ---
+	CharacterVirtual_HasCollidedWithCharacter           :: proc(character: ^CharacterVirtual, other: ^CharacterVirtual) -> bool ---
+	CharacterContactListener_SetProcs                   :: proc(procs: ^CharacterContactListener_Procs) ---
+	CharacterContactListener_Create                     :: proc(userData: rawptr) -> ^CharacterContactListener ---
+	CharacterContactListener_Destroy                    :: proc(listener: ^CharacterContactListener) ---
+
+	/* CharacterVsCharacterCollision */
+	CharacterVsCharacterCollision_SetProcs              :: proc(procs: ^CharacterVsCharacterCollision_Procs) ---
+	CharacterVsCharacterCollision_Create                :: proc(userData: rawptr) -> ^CharacterVsCharacterCollision ---
+	CharacterVsCharacterCollision_CreateSimple          :: proc() -> ^CharacterVsCharacterCollision ---
+	CharacterVsCharacterCollisionSimple_AddCharacter    :: proc(characterVsCharacter: ^CharacterVsCharacterCollision, character: ^CharacterVirtual) ---
+	CharacterVsCharacterCollisionSimple_RemoveCharacter :: proc(characterVsCharacter: ^CharacterVsCharacterCollision, character: ^CharacterVirtual) ---
+	CharacterVsCharacterCollision_Destroy               :: proc(listener: ^CharacterVsCharacterCollision) ---
+
+	//--------------------------------------------------------------------------------------------------
+	// MotionProperties
+	//--------------------------------------------------------------------------------------------------
+	MotionProperties_GetAllowedDOFs            :: proc(properties: ^MotionProperties) -> AllowedDOFs ---
+	MotionProperties_SetLinearDamping          :: proc(properties: ^MotionProperties, damping: f32) ---
+	MotionProperties_GetLinearDamping          :: proc(properties: ^MotionProperties) -> f32 ---
+	MotionProperties_SetAngularDamping         :: proc(properties: ^MotionProperties, damping: f32) ---
+	MotionProperties_GetAngularDamping         :: proc(properties: ^MotionProperties) -> f32 ---
+	MotionProperties_SetMassProperties         :: proc(properties: ^MotionProperties, allowedDOFs: AllowedDOFs, massProperties: ^MassProperties) ---
+	MotionProperties_GetInverseMassUnchecked   :: proc(properties: ^MotionProperties) -> f32 ---
+	MotionProperties_SetInverseMass            :: proc(properties: ^MotionProperties, inverseMass: f32) ---
+	MotionProperties_GetInverseInertiaDiagonal :: proc(properties: ^MotionProperties, result: ^Vec3) ---
+	MotionProperties_GetInertiaRotation        :: proc(properties: ^MotionProperties, result: ^Quat) ---
+	MotionProperties_SetInverseInertia         :: proc(properties: ^MotionProperties, diagonal: ^Vec3, rot: ^Quat) ---
+	MotionProperties_ScaleToMass               :: proc(properties: ^MotionProperties, mass: f32) ---
+
+	//--------------------------------------------------------------------------------------------------
+	// PhysicsMaterial
+	//--------------------------------------------------------------------------------------------------
+	PhysicsMaterial_Create        :: proc(name: cstring, color: u32) -> ^PhysicsMaterial ---
+	PhysicsMaterial_Destroy       :: proc(material: ^PhysicsMaterial) ---
+	PhysicsMaterial_GetDebugName  :: proc(material: ^PhysicsMaterial) -> cstring ---
+	PhysicsMaterial_GetDebugColor :: proc(material: ^PhysicsMaterial) -> u32 ---
+
+	//--------------------------------------------------------------------------------------------------
+	// MassProperties
+	//--------------------------------------------------------------------------------------------------
+	MassProperties_DecomposePrincipalMomentsOfInertia :: proc(properties: ^MassProperties, rotation: ^Matrix4x4, diagonal: ^Vec3) ---
+	MassProperties_ScaleToMass                        :: proc(properties: ^MassProperties, mass: f32) ---
+	MassProperties_GetEquivalentSolidBoxSize          :: proc(mass: f32, inertiaDiagonal: ^Vec3, result: ^Vec3) ---
+
+	//--------------------------------------------------------------------------------------------------
+	// RayCast
+	//--------------------------------------------------------------------------------------------------
+	RayCast_GetPointOnRay  :: proc(origin: ^Vec3, direction: ^Vec3, fraction: f32, result: ^Vec3) ---
+	RRayCast_GetPointOnRay :: proc(origin: ^RVec3, direction: ^Vec3, fraction: f32, result: ^RVec3) ---
+
+	/* ShapeCastSettings */
+	ShapeCastSettings_Init :: proc(settings: ^ShapeCastSettings) ---
+
+	//--------------------------------------------------------------------------------------------------
+	// Collide
+	//--------------------------------------------------------------------------------------------------
+	CollideShapeSettings_Init :: proc(settings: ^CollideShapeSettings) ---
+	CollideShapeResult_FreeMembers        :: proc(result: ^CollideShapeResult) ---
+	CollisionEstimationResult_FreeMembers :: proc(result: ^CollisionEstimationResult) ---
+	EstimateCollisionResponse             :: proc(body1: ^Body, body2: ^Body, manifold: ^ContactManifold, combinedFriction: f32, combinedRestitution: f32, minVelocityForRestitution: f32, numIterations: u32, result: ^CollisionEstimationResult) ---
+
+	//--------------------------------------------------------------------------------------------------
+	// Constraints
+	//--------------------------------------------------------------------------------------------------
 	Constraint_Destroy                     :: proc(constraint: ^Constraint) ---
 	Constraint_GetType                     :: proc(constraint: ^Constraint) -> ConstraintType ---
 	Constraint_GetSubType                  :: proc(constraint: ^Constraint) -> ConstraintSubType ---
@@ -1664,262 +2046,12 @@ foreign lib {
 	GearConstraint_SetConstraints :: proc(constraint: ^GearConstraint, gear1: ^Constraint, gear2: ^Constraint) ---
 	GearConstraint_GetTotalLambda :: proc(constraint: ^GearConstraint) -> f32 ---
 
-	/* BodyInterface */
-	BodyInterface_DestroyBody                       :: proc(interface: ^BodyInterface, bodyID: BodyID) ---
-	BodyInterface_CreateAndAddBody                  :: proc(interface: ^BodyInterface, settings: ^BodyCreationSettings, activationMode: Activation) -> BodyID ---
-	BodyInterface_CreateBody                        :: proc(interface: ^BodyInterface, settings: ^BodyCreationSettings) -> ^Body ---
-	BodyInterface_CreateBodyWithID                  :: proc(interface: ^BodyInterface, bodyID: BodyID, settings: ^BodyCreationSettings) -> ^Body ---
-	BodyInterface_CreateBodyWithoutID               :: proc(interface: ^BodyInterface, settings: ^BodyCreationSettings) -> ^Body ---
-	BodyInterface_DestroyBodyWithoutID              :: proc(interface: ^BodyInterface, body: ^Body) ---
-	BodyInterface_AssignBodyID                      :: proc(interface: ^BodyInterface, body: ^Body) -> bool ---
-	BodyInterface_AssignBodyID2                     :: proc(interface: ^BodyInterface, body: ^Body, bodyID: BodyID) -> bool ---
-	BodyInterface_UnassignBodyID                    :: proc(interface: ^BodyInterface, bodyID: BodyID) -> ^Body ---
-	BodyInterface_CreateSoftBody                    :: proc(interface: ^BodyInterface, settings: ^SoftBodyCreationSettings) -> ^Body ---
-	BodyInterface_CreateSoftBodyWithID              :: proc(interface: ^BodyInterface, bodyID: BodyID, settings: ^SoftBodyCreationSettings) -> ^Body ---
-	BodyInterface_CreateSoftBodyWithoutID           :: proc(interface: ^BodyInterface, settings: ^SoftBodyCreationSettings) -> ^Body ---
-	BodyInterface_CreateAndAddSoftBody              :: proc(interface: ^BodyInterface, settings: ^SoftBodyCreationSettings, activationMode: Activation) -> BodyID ---
-	BodyInterface_AddBody                           :: proc(interface: ^BodyInterface, bodyID: BodyID, activationMode: Activation) ---
-	BodyInterface_RemoveBody                        :: proc(interface: ^BodyInterface, bodyID: BodyID) ---
-	BodyInterface_RemoveAndDestroyBody              :: proc(interface: ^BodyInterface, bodyID: BodyID) ---
-	BodyInterface_IsActive                          :: proc(interface: ^BodyInterface, bodyID: BodyID) -> bool ---
-	BodyInterface_IsAdded                           :: proc(interface: ^BodyInterface, bodyID: BodyID) -> bool ---
-	BodyInterface_GetBodyType                       :: proc(interface: ^BodyInterface, bodyID: BodyID) -> BodyType ---
-	BodyInterface_SetLinearVelocity                 :: proc(interface: ^BodyInterface, bodyID: BodyID, velocity: ^Vec3) ---
-	BodyInterface_GetLinearVelocity                 :: proc(interface: ^BodyInterface, bodyID: BodyID, velocity: ^Vec3) ---
-	BodyInterface_GetCenterOfMassPosition           :: proc(interface: ^BodyInterface, bodyID: BodyID, position: ^RVec3) ---
-	BodyInterface_GetMotionType                     :: proc(interface: ^BodyInterface, bodyID: BodyID) -> MotionType ---
-	BodyInterface_SetMotionType                     :: proc(interface: ^BodyInterface, bodyID: BodyID, motionType: MotionType, activationMode: Activation) ---
-	BodyInterface_GetRestitution                    :: proc(interface: ^BodyInterface, bodyID: BodyID) -> f32 ---
-	BodyInterface_SetRestitution                    :: proc(interface: ^BodyInterface, bodyID: BodyID, restitution: f32) ---
-	BodyInterface_GetFriction                       :: proc(interface: ^BodyInterface, bodyID: BodyID) -> f32 ---
-	BodyInterface_SetFriction                       :: proc(interface: ^BodyInterface, bodyID: BodyID, friction: f32) ---
-	BodyInterface_SetPosition                       :: proc(interface: ^BodyInterface, bodyId: BodyID, position: ^RVec3, activationMode: Activation) ---
-	BodyInterface_GetPosition                       :: proc(interface: ^BodyInterface, bodyId: BodyID, result: ^RVec3) ---
-	BodyInterface_SetRotation                       :: proc(interface: ^BodyInterface, bodyId: BodyID, rotation: ^Quat, activationMode: Activation) ---
-	BodyInterface_GetRotation                       :: proc(interface: ^BodyInterface, bodyId: BodyID, result: ^Quat) ---
-	BodyInterface_SetPositionAndRotation            :: proc(interface: ^BodyInterface, bodyId: BodyID, position: ^RVec3, rotation: ^Quat, activationMode: Activation) ---
-	BodyInterface_SetPositionAndRotationWhenChanged :: proc(interface: ^BodyInterface, bodyId: BodyID, position: ^RVec3, rotation: ^Quat, activationMode: Activation) ---
-	BodyInterface_GetPositionAndRotation            :: proc(interface: ^BodyInterface, bodyId: BodyID, position: ^RVec3, rotation: ^Quat) ---
-	BodyInterface_SetPositionRotationAndVelocity    :: proc(interface: ^BodyInterface, bodyId: BodyID, position: ^RVec3, rotation: ^Quat, linearVelocity: ^Vec3, angularVelocity: ^Vec3) ---
-	BodyInterface_GetCollissionGroup                :: proc(interface: ^BodyInterface, bodyId: BodyID, result: ^CollisionGroup) ---
-	BodyInterface_SetCollissionGroup                :: proc(interface: ^BodyInterface, bodyId: BodyID, group: ^CollisionGroup) ---
-	BodyInterface_GetShape                          :: proc(interface: ^BodyInterface, bodyId: BodyID) -> ^Shape ---
-	BodyInterface_SetShape                          :: proc(interface: ^BodyInterface, bodyId: BodyID, shape: ^Shape, updateMassProperties: bool, activationMode: Activation) ---
-	BodyInterface_NotifyShapeChanged                :: proc(interface: ^BodyInterface, bodyId: BodyID, previousCenterOfMass: ^Vec3, updateMassProperties: bool, activationMode: Activation) ---
-	BodyInterface_ActivateBody                      :: proc(interface: ^BodyInterface, bodyId: BodyID) ---
-	BodyInterface_DeactivateBody                    :: proc(interface: ^BodyInterface, bodyId: BodyID) ---
-	BodyInterface_GetObjectLayer                    :: proc(interface: ^BodyInterface, bodyId: BodyID) -> ObjectLayer ---
-	BodyInterface_SetObjectLayer                    :: proc(interface: ^BodyInterface, bodyId: BodyID, layer: ObjectLayer) ---
-	BodyInterface_GetWorldTransform                 :: proc(interface: ^BodyInterface, bodyId: BodyID, result: ^RMatrix4x4) ---
-	BodyInterface_GetCenterOfMassTransform          :: proc(interface: ^BodyInterface, bodyId: BodyID, result: ^RMatrix4x4) ---
-	BodyInterface_MoveKinematic                     :: proc(interface: ^BodyInterface, bodyId: BodyID, targetPosition: ^RVec3, targetRotation: ^Quat, deltaTime: f32) ---
-	BodyInterface_ApplyBuoyancyImpulse              :: proc(interface: ^BodyInterface, bodyId: BodyID, surfacePosition: ^RVec3, surfaceNormal: ^Vec3, buoyancy: f32, linearDrag: f32, angularDrag: f32, fluidVelocity: ^Vec3, gravity: ^Vec3, deltaTime: f32) -> bool ---
-	BodyInterface_SetLinearAndAngularVelocity       :: proc(interface: ^BodyInterface, bodyId: BodyID, linearVelocity: ^Vec3, angularVelocity: ^Vec3) ---
-	BodyInterface_GetLinearAndAngularVelocity       :: proc(interface: ^BodyInterface, bodyId: BodyID, linearVelocity: ^Vec3, angularVelocity: ^Vec3) ---
-	BodyInterface_AddLinearVelocity                 :: proc(interface: ^BodyInterface, bodyId: BodyID, linearVelocity: ^Vec3) ---
-	BodyInterface_AddLinearAndAngularVelocity       :: proc(interface: ^BodyInterface, bodyId: BodyID, linearVelocity: ^Vec3, angularVelocity: ^Vec3) ---
-	BodyInterface_SetAngularVelocity                :: proc(interface: ^BodyInterface, bodyId: BodyID, angularVelocity: ^Vec3) ---
-	BodyInterface_GetAngularVelocity                :: proc(interface: ^BodyInterface, bodyId: BodyID, angularVelocity: ^Vec3) ---
-	BodyInterface_GetPointVelocity                  :: proc(interface: ^BodyInterface, bodyId: BodyID, point: ^RVec3, velocity: ^Vec3) ---
-	BodyInterface_AddForce                          :: proc(interface: ^BodyInterface, bodyId: BodyID, force: ^Vec3) ---
-	BodyInterface_AddForce2                         :: proc(interface: ^BodyInterface, bodyId: BodyID, force: ^Vec3, point: ^RVec3) ---
-	BodyInterface_AddTorque                         :: proc(interface: ^BodyInterface, bodyId: BodyID, torque: ^Vec3) ---
-	BodyInterface_AddForceAndTorque                 :: proc(interface: ^BodyInterface, bodyId: BodyID, force: ^Vec3, torque: ^Vec3) ---
-	BodyInterface_AddImpulse                        :: proc(interface: ^BodyInterface, bodyId: BodyID, impulse: ^Vec3) ---
-	BodyInterface_AddImpulse2                       :: proc(interface: ^BodyInterface, bodyId: BodyID, impulse: ^Vec3, point: ^RVec3) ---
-	BodyInterface_AddAngularImpulse                 :: proc(interface: ^BodyInterface, bodyId: BodyID, angularImpulse: ^Vec3) ---
-	BodyInterface_SetMotionQuality                  :: proc(interface: ^BodyInterface, bodyId: BodyID, quality: MotionQuality) ---
-	BodyInterface_GetMotionQuality                  :: proc(interface: ^BodyInterface, bodyId: BodyID) -> MotionQuality ---
-	BodyInterface_GetInverseInertia                 :: proc(interface: ^BodyInterface, bodyId: BodyID, result: ^Matrix4x4) ---
-	BodyInterface_SetGravityFactor                  :: proc(interface: ^BodyInterface, bodyId: BodyID, value: f32) ---
-	BodyInterface_GetGravityFactor                  :: proc(interface: ^BodyInterface, bodyId: BodyID) -> f32 ---
-	BodyInterface_SetUseManifoldReduction           :: proc(interface: ^BodyInterface, bodyId: BodyID, value: bool) ---
-	BodyInterface_GetUseManifoldReduction           :: proc(interface: ^BodyInterface, bodyId: BodyID) -> bool ---
-	BodyInterface_SetUserData                       :: proc(interface: ^BodyInterface, bodyId: BodyID, inUserData: u64) ---
-	BodyInterface_GetUserData                       :: proc(interface: ^BodyInterface, bodyId: BodyID) -> u64 ---
-	BodyInterface_GetMaterial                       :: proc(interface: ^BodyInterface, bodyId: BodyID, subShapeID: SubShapeID) -> ^PhysicsMaterial ---
-	BodyInterface_InvalidateContactCache            :: proc(interface: ^BodyInterface, bodyId: BodyID) ---
-
 	//--------------------------------------------------------------------------------------------------
-	// BodyLockInterface
+	// CollisionDispatch
 	//--------------------------------------------------------------------------------------------------
-	BodyLockInterface_LockRead       :: proc(lockInterface: ^BodyLockInterface, bodyID: BodyID, outLock: ^BodyLockRead) ---
-	BodyLockInterface_UnlockRead     :: proc(lockInterface: ^BodyLockInterface, ioLock: ^BodyLockRead) ---
-	BodyLockInterface_LockWrite      :: proc(lockInterface: ^BodyLockInterface, bodyID: BodyID, outLock: ^BodyLockWrite) ---
-	BodyLockInterface_UnlockWrite    :: proc(lockInterface: ^BodyLockInterface, ioLock: ^BodyLockWrite) ---
-	BodyLockInterface_LockMultiRead  :: proc(lockInterface: ^BodyLockInterface, bodyIDs: ^BodyID, count: u32) -> ^BodyLockMultiRead ---
-	BodyLockMultiRead_Destroy        :: proc(ioLock: ^BodyLockMultiRead) ---
-	BodyLockMultiRead_GetBody        :: proc(ioLock: ^BodyLockMultiRead, bodyIndex: u32) -> ^Body ---
-	BodyLockInterface_LockMultiWrite :: proc(lockInterface: ^BodyLockInterface, bodyIDs: ^BodyID, count: u32) -> ^BodyLockMultiWrite ---
-	BodyLockMultiWrite_Destroy       :: proc(ioLock: ^BodyLockMultiWrite) ---
-	BodyLockMultiWrite_GetBody       :: proc(ioLock: ^BodyLockMultiWrite, bodyIndex: u32) -> ^Body ---
-
-	//--------------------------------------------------------------------------------------------------
-	// MotionProperties
-	//--------------------------------------------------------------------------------------------------
-	MotionProperties_GetAllowedDOFs            :: proc(properties: ^MotionProperties) -> AllowedDOFs ---
-	MotionProperties_SetLinearDamping          :: proc(properties: ^MotionProperties, damping: f32) ---
-	MotionProperties_GetLinearDamping          :: proc(properties: ^MotionProperties) -> f32 ---
-	MotionProperties_SetAngularDamping         :: proc(properties: ^MotionProperties, damping: f32) ---
-	MotionProperties_GetAngularDamping         :: proc(properties: ^MotionProperties) -> f32 ---
-	MotionProperties_SetMassProperties         :: proc(properties: ^MotionProperties, allowedDOFs: AllowedDOFs, massProperties: ^MassProperties) ---
-	MotionProperties_GetInverseMassUnchecked   :: proc(properties: ^MotionProperties) -> f32 ---
-	MotionProperties_SetInverseMass            :: proc(properties: ^MotionProperties, inverseMass: f32) ---
-	MotionProperties_GetInverseInertiaDiagonal :: proc(properties: ^MotionProperties, result: ^Vec3) ---
-	MotionProperties_GetInertiaRotation        :: proc(properties: ^MotionProperties, result: ^Quat) ---
-	MotionProperties_SetInverseInertia         :: proc(properties: ^MotionProperties, diagonal: ^Vec3, rot: ^Quat) ---
-	MotionProperties_ScaleToMass               :: proc(properties: ^MotionProperties, mass: f32) ---
-
-	//--------------------------------------------------------------------------------------------------
-	// RayCast
-	//--------------------------------------------------------------------------------------------------
-	RayCast_GetPointOnRay  :: proc(origin: ^Vec3, direction: ^Vec3, fraction: f32, result: ^Vec3) ---
-	RRayCast_GetPointOnRay :: proc(origin: ^RVec3, direction: ^Vec3, fraction: f32, result: ^RVec3) ---
-
-	//--------------------------------------------------------------------------------------------------
-	// MassProperties
-	//--------------------------------------------------------------------------------------------------
-	MassProperties_DecomposePrincipalMomentsOfInertia :: proc(properties: ^MassProperties, rotation: ^Matrix4x4, diagonal: ^Vec3) ---
-	MassProperties_ScaleToMass                        :: proc(properties: ^MassProperties, mass: f32) ---
-	MassProperties_GetEquivalentSolidBoxSize          :: proc(mass: f32, inertiaDiagonal: ^Vec3, result: ^Vec3) ---
-
-	//--------------------------------------------------------------------------------------------------
-	// CollideShapeSettings
-	//--------------------------------------------------------------------------------------------------
-	CollideShapeSettings_Init :: proc(settings: ^CollideShapeSettings) ---
-
-	//--------------------------------------------------------------------------------------------------
-	// ShapeCastSettings
-	//--------------------------------------------------------------------------------------------------
-	ShapeCastSettings_Init :: proc(settings: ^ShapeCastSettings) ---
-
-	//--------------------------------------------------------------------------------------------------
-	// BroadPhaseQuery
-	//--------------------------------------------------------------------------------------------------
-	BroadPhaseQuery_CastRay       :: proc(query: ^BroadPhaseQuery, origin: ^Vec3, direction: ^Vec3, callback: RayCastBodyCollectorCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter) -> bool ---
-	BroadPhaseQuery_CastRay2      :: proc(query: ^BroadPhaseQuery, origin: ^Vec3, direction: ^Vec3, collectorType: CollisionCollectorType, callback: RayCastBodyResultCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter) -> bool ---
-	BroadPhaseQuery_CollideAABox  :: proc(query: ^BroadPhaseQuery, box: ^AABox, callback: CollideShapeBodyCollectorCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter) -> bool ---
-	BroadPhaseQuery_CollideSphere :: proc(query: ^BroadPhaseQuery, center: ^Vec3, radius: f32, callback: CollideShapeBodyCollectorCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter) -> bool ---
-	BroadPhaseQuery_CollidePoint  :: proc(query: ^BroadPhaseQuery, point: ^Vec3, callback: CollideShapeBodyCollectorCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter) -> bool ---
-
-	//--------------------------------------------------------------------------------------------------
-	// NarrowPhaseQuery
-	//--------------------------------------------------------------------------------------------------
-	NarrowPhaseQuery_CastRay       :: proc(query: ^NarrowPhaseQuery, origin: ^RVec3, direction: ^Vec3, hit: ^RayCastResult, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter, bodyFilter: ^BodyFilter) -> bool ---
-	NarrowPhaseQuery_CastRay2      :: proc(query: ^NarrowPhaseQuery, origin: ^RVec3, direction: ^Vec3, rayCastSettings: ^RayCastSettings, callback: CastRayCollectorCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
-	NarrowPhaseQuery_CastRay3      :: proc(query: ^NarrowPhaseQuery, origin: ^RVec3, direction: ^Vec3, rayCastSettings: ^RayCastSettings, collectorType: CollisionCollectorType, callback: CastRayResultCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
-	NarrowPhaseQuery_CollidePoint  :: proc(query: ^NarrowPhaseQuery, point: ^RVec3, callback: CollidePointCollectorCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
-	NarrowPhaseQuery_CollidePoint2 :: proc(query: ^NarrowPhaseQuery, point: ^RVec3, collectorType: CollisionCollectorType, callback: CollidePointResultCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
-	NarrowPhaseQuery_CollideShape  :: proc(query: ^NarrowPhaseQuery, shape: ^Shape, scale: ^Vec3, centerOfMassTransform: ^RMatrix4x4, settings: ^CollideShapeSettings, baseOffset: ^RVec3, callback: CollideShapeCollectorCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
-	NarrowPhaseQuery_CollideShape2 :: proc(query: ^NarrowPhaseQuery, shape: ^Shape, scale: ^Vec3, centerOfMassTransform: ^RMatrix4x4, settings: ^CollideShapeSettings, baseOffset: ^RVec3, collectorType: CollisionCollectorType, callback: CollideShapeResultCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
-	NarrowPhaseQuery_CastShape     :: proc(query: ^NarrowPhaseQuery, shape: ^Shape, worldTransform: ^RMatrix4x4, direction: ^Vec3, settings: ^ShapeCastSettings, baseOffset: ^RVec3, callback: CastShapeCollectorCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
-	NarrowPhaseQuery_CastShape2    :: proc(query: ^NarrowPhaseQuery, shape: ^Shape, worldTransform: ^RMatrix4x4, direction: ^Vec3, settings: ^ShapeCastSettings, baseOffset: ^RVec3, collectorType: CollisionCollectorType, callback: CastShapeResultCallback, userData: rawptr, broadPhaseLayerFilter: ^BroadPhaseLayerFilter, objectLayerFilter: ^ObjectLayerFilter, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
-
-	//--------------------------------------------------------------------------------------------------
-	// Body
-	//--------------------------------------------------------------------------------------------------
-	Body_GetID                                  :: proc(body: ^Body) -> BodyID ---
-	Body_GetBodyType                            :: proc(body: ^Body) -> BodyType ---
-	Body_IsRigidBody                            :: proc(body: ^Body) -> bool ---
-	Body_IsSoftBody                             :: proc(body: ^Body) -> bool ---
-	Body_IsActive                               :: proc(body: ^Body) -> bool ---
-	Body_IsStatic                               :: proc(body: ^Body) -> bool ---
-	Body_IsKinematic                            :: proc(body: ^Body) -> bool ---
-	Body_IsDynamic                              :: proc(body: ^Body) -> bool ---
-	Body_CanBeKinematicOrDynamic                :: proc(body: ^Body) -> bool ---
-	Body_SetIsSensor                            :: proc(body: ^Body, value: bool) ---
-	Body_IsSensor                               :: proc(body: ^Body) -> bool ---
-	Body_SetCollideKinematicVsNonDynamic        :: proc(body: ^Body, value: bool) ---
-	Body_GetCollideKinematicVsNonDynamic        :: proc(body: ^Body) -> bool ---
-	Body_SetUseManifoldReduction                :: proc(body: ^Body, value: bool) ---
-	Body_GetUseManifoldReduction                :: proc(body: ^Body) -> bool ---
-	Body_GetUseManifoldReductionWithBody        :: proc(body: ^Body, other: ^Body) -> bool ---
-	Body_SetApplyGyroscopicForce                :: proc(body: ^Body, value: bool) ---
-	Body_GetApplyGyroscopicForce                :: proc(body: ^Body) -> bool ---
-	Body_SetEnhancedInternalEdgeRemoval         :: proc(body: ^Body, value: bool) ---
-	Body_GetEnhancedInternalEdgeRemoval         :: proc(body: ^Body) -> bool ---
-	Body_GetEnhancedInternalEdgeRemovalWithBody :: proc(body: ^Body, other: ^Body) -> bool ---
-	Body_GetMotionType                          :: proc(body: ^Body) -> MotionType ---
-	Body_SetMotionType                          :: proc(body: ^Body, motionType: MotionType) ---
-	Body_GetBroadPhaseLayer                     :: proc(body: ^Body) -> BroadPhaseLayer ---
-	Body_GetObjectLayer                         :: proc(body: ^Body) -> ObjectLayer ---
-	Body_GetCollissionGroup                     :: proc(body: ^Body, result: ^CollisionGroup) ---
-	Body_SetCollissionGroup                     :: proc(body: ^Body, value: ^CollisionGroup) ---
-	Body_GetAllowSleeping                       :: proc(body: ^Body) -> bool ---
-	Body_SetAllowSleeping                       :: proc(body: ^Body, allowSleeping: bool) ---
-	Body_ResetSleepTimer                        :: proc(body: ^Body) ---
-	Body_GetFriction                            :: proc(body: ^Body) -> f32 ---
-	Body_SetFriction                            :: proc(body: ^Body, friction: f32) ---
-	Body_GetRestitution                         :: proc(body: ^Body) -> f32 ---
-	Body_SetRestitution                         :: proc(body: ^Body, restitution: f32) ---
-	Body_GetLinearVelocity                      :: proc(body: ^Body, velocity: ^Vec3) ---
-	Body_SetLinearVelocity                      :: proc(body: ^Body, velocity: ^Vec3) ---
-	Body_SetLinearVelocityClamped               :: proc(body: ^Body, velocity: ^Vec3) ---
-	Body_GetAngularVelocity                     :: proc(body: ^Body, velocity: ^Vec3) ---
-	Body_SetAngularVelocity                     :: proc(body: ^Body, velocity: ^Vec3) ---
-	Body_SetAngularVelocityClamped              :: proc(body: ^Body, velocity: ^Vec3) ---
-	Body_GetPointVelocityCOM                    :: proc(body: ^Body, pointRelativeToCOM: ^Vec3, velocity: ^Vec3) ---
-	Body_GetPointVelocity                       :: proc(body: ^Body, point: ^RVec3, velocity: ^Vec3) ---
-	Body_AddForce                               :: proc(body: ^Body, force: ^Vec3) ---
-	Body_AddForceAtPosition                     :: proc(body: ^Body, force: ^Vec3, position: ^RVec3) ---
-	Body_AddTorque                              :: proc(body: ^Body, force: ^Vec3) ---
-	Body_GetAccumulatedForce                    :: proc(body: ^Body, force: ^Vec3) ---
-	Body_GetAccumulatedTorque                   :: proc(body: ^Body, force: ^Vec3) ---
-	Body_ResetForce                             :: proc(body: ^Body) ---
-	Body_ResetTorque                            :: proc(body: ^Body) ---
-	Body_ResetMotion                            :: proc(body: ^Body) ---
-	Body_GetInverseInertia                      :: proc(body: ^Body, result: ^Matrix4x4) ---
-	Body_AddImpulse                             :: proc(body: ^Body, impulse: ^Vec3) ---
-	Body_AddImpulseAtPosition                   :: proc(body: ^Body, impulse: ^Vec3, position: ^RVec3) ---
-	Body_AddAngularImpulse                      :: proc(body: ^Body, angularImpulse: ^Vec3) ---
-	Body_MoveKinematic                          :: proc(body: ^Body, targetPosition: ^RVec3, targetRotation: ^Quat, deltaTime: f32) ---
-	Body_ApplyBuoyancyImpulse                   :: proc(body: ^Body, surfacePosition: ^RVec3, surfaceNormal: ^Vec3, buoyancy: f32, linearDrag: f32, angularDrag: f32, fluidVelocity: ^Vec3, gravity: ^Vec3, deltaTime: f32) -> bool ---
-	Body_IsInBroadPhase                         :: proc(body: ^Body) -> bool ---
-	Body_IsCollisionCacheInvalid                :: proc(body: ^Body) -> bool ---
-	Body_GetShape                               :: proc(body: ^Body) -> ^Shape ---
-	Body_GetPosition                            :: proc(body: ^Body, result: ^RVec3) ---
-	Body_GetRotation                            :: proc(body: ^Body, result: ^Quat) ---
-	Body_GetWorldTransform                      :: proc(body: ^Body, result: ^RMatrix4x4) ---
-	Body_GetCenterOfMassPosition                :: proc(body: ^Body, result: ^RVec3) ---
-	Body_GetCenterOfMassTransform               :: proc(body: ^Body, result: ^RMatrix4x4) ---
-	Body_GetInverseCenterOfMassTransform        :: proc(body: ^Body, result: ^RMatrix4x4) ---
-	Body_GetWorldSpaceBounds                    :: proc(body: ^Body, result: ^AABox) ---
-	Body_GetWorldSpaceSurfaceNormal             :: proc(body: ^Body, subShapeID: SubShapeID, position: ^RVec3, normal: ^Vec3) ---
-	Body_GetMotionProperties                    :: proc(body: ^Body) -> ^MotionProperties ---
-	Body_GetMotionPropertiesUnchecked           :: proc(body: ^Body) -> ^MotionProperties ---
-	Body_SetUserData                            :: proc(body: ^Body, userData: u64) ---
-	Body_GetUserData                            :: proc(body: ^Body) -> u64 ---
-	Body_GetFixedToWorldBody                    :: proc() -> ^Body ---
-
-	/* BroadPhaseLayerFilter_SetProcs */
-	BroadPhaseLayerFilter_SetProcs              :: proc(procs: ^BroadPhaseLayerFilter_Procs) ---
-	BroadPhaseLayerFilter_Create                :: proc(userData: rawptr) -> ^BroadPhaseLayerFilter ---
-	BroadPhaseLayerFilter_Destroy               :: proc(filter: ^BroadPhaseLayerFilter) ---
-	ObjectLayerFilter_SetProcs                  :: proc(procs: ^ObjectLayerFilter_Procs) ---
-	ObjectLayerFilter_Create                    :: proc(userData: rawptr) -> ^ObjectLayerFilter ---
-	ObjectLayerFilter_Destroy                   :: proc(filter: ^ObjectLayerFilter) ---
-	BodyFilter_SetProcs                         :: proc(procs: ^BodyFilter_Procs) ---
-	BodyFilter_Create                           :: proc(userData: rawptr) -> ^BodyFilter ---
-	BodyFilter_Destroy                          :: proc(filter: ^BodyFilter) ---
-	ShapeFilter_SetProcs                        :: proc(procs: ^ShapeFilter_Procs) ---
-	ShapeFilter_Create                          :: proc(userData: rawptr) -> ^ShapeFilter ---
-	ShapeFilter_Destroy                         :: proc(filter: ^ShapeFilter) ---
-	ShapeFilter_GetBodyID2                      :: proc(filter: ^ShapeFilter) -> BodyID ---
-	ShapeFilter_SetBodyID2                      :: proc(filter: ^ShapeFilter, id: BodyID) ---
-	SimShapeFilter_SetProcs                     :: proc(procs: ^SimShapeFilter_Procs) ---
-	SimShapeFilter_Create                       :: proc(userData: rawptr) -> ^SimShapeFilter ---
-	SimShapeFilter_Destroy                      :: proc(filter: ^SimShapeFilter) ---
-	ContactListener_SetProcs                    :: proc(procs: ^ContactListener_Procs) ---
-	ContactListener_Create                      :: proc(userData: rawptr) -> ^ContactListener ---
-	ContactListener_Destroy                     :: proc(listener: ^ContactListener) ---
-	BodyActivationListener_SetProcs             :: proc(procs: ^BodyActivationListener_Procs) ---
-	BodyActivationListener_Create               :: proc(userData: rawptr) -> ^BodyActivationListener ---
-	BodyActivationListener_Destroy              :: proc(listener: ^BodyActivationListener) ---
-
-	/* BodyDraw */
-	BodyDrawFilter_SetProcs                     :: proc(procs: ^BodyDrawFilter_Procs) ---
-	BodyDrawFilter_Create                       :: proc(userData: rawptr) -> ^BodyDrawFilter ---
-	BodyDrawFilter_Destroy                      :: proc(filter: ^BodyDrawFilter) ---
+	CollisionDispatch_CollideShapeVsShape        :: proc(shape1: ^Shape, shape2: ^Shape, scale1: ^Vec3, scale2: ^Vec3, centerOfMassTransform1: ^Matrix4x4, centerOfMassTransform2: ^Matrix4x4, collideShapeSettings: ^CollideShapeSettings, callback: CollideShapeCollectorCallback, userData: rawptr, shapeFilter: ^ShapeFilter) -> bool ---
+	CollisionDispatch_CastShapeVsShapeLocalSpace :: proc(direction: ^Vec3, shape1: ^Shape, shape2: ^Shape, scale1InShape2LocalSpace: ^Vec3, scale2: ^Vec3, centerOfMassTransform1InShape2LocalSpace: ^Matrix4x4, centerOfMassWorldTransform2: ^Matrix4x4, shapeCastSettings: ^ShapeCastSettings, callback: CastShapeCollectorCallback, userData: rawptr, shapeFilter: ^ShapeFilter) -> bool ---
+	CollisionDispatch_CastShapeVsShapeWorldSpace :: proc(direction: ^Vec3, shape1: ^Shape, shape2: ^Shape, scale1: ^Vec3, inScale2: ^Vec3, centerOfMassWorldTransform1: ^Matrix4x4, centerOfMassWorldTransform2: ^Matrix4x4, shapeCastSettings: ^ShapeCastSettings, callback: CastShapeCollectorCallback, userData: rawptr, shapeFilter: ^ShapeFilter) -> bool ---
 
 	/* ContactManifold */
 	ContactManifold_GetWorldSpaceNormal          :: proc(manifold: ^ContactManifold, result: ^Vec3) ---
@@ -1949,147 +2081,6 @@ foreign lib {
 	ContactSettings_SetRelativeLinearSurfaceVelocity  :: proc(settings: ^ContactSettings, velocity: ^Vec3) ---
 	ContactSettings_GetRelativeAngularSurfaceVelocity :: proc(settings: ^ContactSettings, result: ^Vec3) ---
 	ContactSettings_SetRelativeAngularSurfaceVelocity :: proc(settings: ^ContactSettings, velocity: ^Vec3) ---
-
-	/* CharacterBase */
-	CharacterBase_Destroy             :: proc(character: ^CharacterBase) ---
-	CharacterBase_GetCosMaxSlopeAngle :: proc(character: ^CharacterBase) -> f32 ---
-	CharacterBase_SetMaxSlopeAngle    :: proc(character: ^CharacterBase, maxSlopeAngle: f32) ---
-	CharacterBase_GetUp               :: proc(character: ^CharacterBase, result: ^Vec3) ---
-	CharacterBase_SetUp               :: proc(character: ^CharacterBase, value: ^Vec3) ---
-	CharacterBase_IsSlopeTooSteep     :: proc(character: ^CharacterBase, value: ^Vec3) -> bool ---
-	CharacterBase_GetShape            :: proc(character: ^CharacterBase) -> ^Shape ---
-	CharacterBase_GetGroundState      :: proc(character: ^CharacterBase) -> GroundState ---
-	CharacterBase_IsSupported         :: proc(character: ^CharacterBase) -> bool ---
-	CharacterBase_GetGroundPosition   :: proc(character: ^CharacterBase, position: ^RVec3) ---
-	CharacterBase_GetGroundNormal     :: proc(character: ^CharacterBase, normal: ^Vec3) ---
-	CharacterBase_GetGroundVelocity   :: proc(character: ^CharacterBase, velocity: ^Vec3) ---
-	CharacterBase_GetGroundMaterial   :: proc(character: ^CharacterBase) -> ^PhysicsMaterial ---
-	CharacterBase_GetGroundBodyId     :: proc(character: ^CharacterBase) -> BodyID ---
-	CharacterBase_GetGroundSubShapeId :: proc(character: ^CharacterBase) -> SubShapeID ---
-	CharacterBase_GetGroundUserData   :: proc(character: ^CharacterBase) -> u64 ---
-
-	/* CharacterSettings */
-	CharacterSettings_Init :: proc(settings: ^CharacterSettings) ---
-
-	/* Character */
-	Character_Create                      :: proc(settings: ^CharacterSettings, position: ^RVec3, rotation: ^Quat, userData: u64, system: ^PhysicsSystem) -> ^Character ---
-	Character_AddToPhysicsSystem          :: proc(character: ^Character, activationMode: Activation, lockBodies: bool) ---
-	Character_RemoveFromPhysicsSystem     :: proc(character: ^Character, lockBodies: bool) ---
-	Character_Activate                    :: proc(character: ^Character, lockBodies: bool) ---
-	Character_PostSimulation              :: proc(character: ^Character, maxSeparationDistance: f32, lockBodies: bool) ---
-	Character_SetLinearAndAngularVelocity :: proc(character: ^Character, linearVelocity: ^Vec3, angularVelocity: ^Vec3, lockBodies: bool) ---
-	Character_GetLinearVelocity           :: proc(character: ^Character, result: ^Vec3) ---
-	Character_SetLinearVelocity           :: proc(character: ^Character, value: ^Vec3, lockBodies: bool) ---
-	Character_AddLinearVelocity           :: proc(character: ^Character, value: ^Vec3, lockBodies: bool) ---
-	Character_AddImpulse                  :: proc(character: ^Character, value: ^Vec3, lockBodies: bool) ---
-	Character_GetBodyID                   :: proc(character: ^Character) -> BodyID ---
-	Character_GetPositionAndRotation      :: proc(character: ^Character, position: ^RVec3, rotation: ^Quat, lockBodies: bool) ---
-	Character_SetPositionAndRotation      :: proc(character: ^Character, position: ^RVec3, rotation: ^Quat, activationMode: Activation, lockBodies: bool) ---
-	Character_GetPosition                 :: proc(character: ^Character, position: ^RVec3, lockBodies: bool) ---
-	Character_SetPosition                 :: proc(character: ^Character, position: ^RVec3, activationMode: Activation, lockBodies: bool) ---
-	Character_GetRotation                 :: proc(character: ^Character, rotation: ^Quat, lockBodies: bool) ---
-	Character_SetRotation                 :: proc(character: ^Character, rotation: ^Quat, activationMode: Activation, lockBodies: bool) ---
-	Character_GetCenterOfMassPosition     :: proc(character: ^Character, result: ^RVec3, lockBodies: bool) ---
-	Character_GetWorldTransform           :: proc(character: ^Character, result: ^RMatrix4x4, lockBodies: bool) ---
-	Character_GetLayer                    :: proc(character: ^Character) -> ObjectLayer ---
-	Character_SetLayer                    :: proc(character: ^Character, value: ObjectLayer, lockBodies: bool) ---
-	Character_SetShape                    :: proc(character: ^Character, shape: ^Shape, maxPenetrationDepth: f32, lockBodies: bool) ---
-
-	/* CharacterVirtualSettings */
-	CharacterVirtualSettings_Init :: proc(settings: ^CharacterVirtualSettings) ---
-
-	/* CharacterVirtual */
-	CharacterVirtual_Create                             :: proc(settings: ^CharacterVirtualSettings, position: ^RVec3, rotation: ^Quat, userData: u64, system: ^PhysicsSystem) -> ^CharacterVirtual ---
-	CharacterVirtual_GetID                              :: proc(character: ^CharacterVirtual) -> CharacterID ---
-	CharacterVirtual_SetListener                        :: proc(character: ^CharacterVirtual, listener: ^CharacterContactListener) ---
-	CharacterVirtual_SetCharacterVsCharacterCollision   :: proc(character: ^CharacterVirtual, characterVsCharacterCollision: ^CharacterVsCharacterCollision) ---
-	CharacterVirtual_GetLinearVelocity                  :: proc(character: ^CharacterVirtual, velocity: ^Vec3) ---
-	CharacterVirtual_SetLinearVelocity                  :: proc(character: ^CharacterVirtual, velocity: ^Vec3) ---
-	CharacterVirtual_GetPosition                        :: proc(character: ^CharacterVirtual, position: ^RVec3) ---
-	CharacterVirtual_SetPosition                        :: proc(character: ^CharacterVirtual, position: ^RVec3) ---
-	CharacterVirtual_GetRotation                        :: proc(character: ^CharacterVirtual, rotation: ^Quat) ---
-	CharacterVirtual_SetRotation                        :: proc(character: ^CharacterVirtual, rotation: ^Quat) ---
-	CharacterVirtual_GetWorldTransform                  :: proc(character: ^CharacterVirtual, result: ^RMatrix4x4) ---
-	CharacterVirtual_GetCenterOfMassTransform           :: proc(character: ^CharacterVirtual, result: ^RMatrix4x4) ---
-	CharacterVirtual_GetMass                            :: proc(character: ^CharacterVirtual) -> f32 ---
-	CharacterVirtual_SetMass                            :: proc(character: ^CharacterVirtual, value: f32) ---
-	CharacterVirtual_GetMaxStrength                     :: proc(character: ^CharacterVirtual) -> f32 ---
-	CharacterVirtual_SetMaxStrength                     :: proc(character: ^CharacterVirtual, value: f32) ---
-	CharacterVirtual_GetPenetrationRecoverySpeed        :: proc(character: ^CharacterVirtual) -> f32 ---
-	CharacterVirtual_SetPenetrationRecoverySpeed        :: proc(character: ^CharacterVirtual, value: f32) ---
-	CharacterVirtual_GetEnhancedInternalEdgeRemoval     :: proc(character: ^CharacterVirtual) -> bool ---
-	CharacterVirtual_SetEnhancedInternalEdgeRemoval     :: proc(character: ^CharacterVirtual, value: bool) ---
-	CharacterVirtual_GetCharacterPadding                :: proc(character: ^CharacterVirtual) -> f32 ---
-	CharacterVirtual_GetMaxNumHits                      :: proc(character: ^CharacterVirtual) -> u32 ---
-	CharacterVirtual_SetMaxNumHits                      :: proc(character: ^CharacterVirtual, value: u32) ---
-	CharacterVirtual_GetHitReductionCosMaxAngle         :: proc(character: ^CharacterVirtual) -> f32 ---
-	CharacterVirtual_SetHitReductionCosMaxAngle         :: proc(character: ^CharacterVirtual, value: f32) ---
-	CharacterVirtual_GetMaxHitsExceeded                 :: proc(character: ^CharacterVirtual) -> bool ---
-	CharacterVirtual_GetShapeOffset                     :: proc(character: ^CharacterVirtual, result: ^Vec3) ---
-	CharacterVirtual_SetShapeOffset                     :: proc(character: ^CharacterVirtual, value: ^Vec3) ---
-	CharacterVirtual_GetUserData                        :: proc(character: ^CharacterVirtual) -> u64 ---
-	CharacterVirtual_SetUserData                        :: proc(character: ^CharacterVirtual, value: u64) ---
-	CharacterVirtual_GetInnerBodyID                     :: proc(character: ^CharacterVirtual) -> BodyID ---
-	CharacterVirtual_CancelVelocityTowardsSteepSlopes   :: proc(character: ^CharacterVirtual, desiredVelocity: ^Vec3, velocity: ^Vec3) ---
-	CharacterVirtual_StartTrackingContactChanges        :: proc(character: ^CharacterVirtual) ---
-	CharacterVirtual_FinishTrackingContactChanges       :: proc(character: ^CharacterVirtual) ---
-	CharacterVirtual_Update                             :: proc(character: ^CharacterVirtual, deltaTime: f32, layer: ObjectLayer, system: ^PhysicsSystem, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) ---
-	CharacterVirtual_ExtendedUpdate                     :: proc(character: ^CharacterVirtual, deltaTime: f32, settings: ^ExtendedUpdateSettings, layer: ObjectLayer, system: ^PhysicsSystem, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) ---
-	CharacterVirtual_RefreshContacts                    :: proc(character: ^CharacterVirtual, layer: ObjectLayer, system: ^PhysicsSystem, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) ---
-	CharacterVirtual_CanWalkStairs                      :: proc(character: ^CharacterVirtual, linearVelocity: ^Vec3) -> bool ---
-	CharacterVirtual_WalkStairs                         :: proc(character: ^CharacterVirtual, deltaTime: f32, stepUp: ^Vec3, stepForward: ^Vec3, stepForwardTest: ^Vec3, stepDownExtra: ^Vec3, layer: ObjectLayer, system: ^PhysicsSystem, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
-	CharacterVirtual_StickToFloor                       :: proc(character: ^CharacterVirtual, stepDown: ^Vec3, layer: ObjectLayer, system: ^PhysicsSystem, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
-	CharacterVirtual_UpdateGroundVelocity               :: proc(character: ^CharacterVirtual) ---
-	CharacterVirtual_SetShape                           :: proc(character: ^CharacterVirtual, shape: ^Shape, maxPenetrationDepth: f32, layer: ObjectLayer, system: ^PhysicsSystem, bodyFilter: ^BodyFilter, shapeFilter: ^ShapeFilter) -> bool ---
-	CharacterVirtual_SetInnerBodyShape                  :: proc(character: ^CharacterVirtual, shape: ^Shape) ---
-	CharacterVirtual_GetNumActiveContacts               :: proc(character: ^CharacterVirtual) -> u32 ---
-	CharacterVirtual_GetActiveContact                   :: proc(character: ^CharacterVirtual, index: u32, result: ^CharacterVirtualContact)	 ---
-	CharacterVirtual_HasCollidedWithBody                :: proc(character: ^CharacterVirtual, body: BodyID) -> bool ---
-	CharacterVirtual_HasCollidedWith                    :: proc(character: ^CharacterVirtual, other: CharacterID) -> bool ---
-	CharacterVirtual_HasCollidedWithCharacter           :: proc(character: ^CharacterVirtual, other: ^CharacterVirtual) -> bool ---
-	CharacterContactListener_SetProcs                   :: proc(procs: ^CharacterContactListener_Procs) ---
-	CharacterContactListener_Create                     :: proc(userData: rawptr) -> ^CharacterContactListener ---
-	CharacterContactListener_Destroy                    :: proc(listener: ^CharacterContactListener) ---
-	CharacterVsCharacterCollision_SetProcs              :: proc(procs: ^CharacterVsCharacterCollision_Procs) ---
-	CharacterVsCharacterCollision_Create                :: proc(userData: rawptr) -> ^CharacterVsCharacterCollision ---
-	CharacterVsCharacterCollision_CreateSimple          :: proc() -> ^CharacterVsCharacterCollision ---
-	CharacterVsCharacterCollisionSimple_AddCharacter    :: proc(characterVsCharacter: ^CharacterVsCharacterCollision, character: ^CharacterVirtual) ---
-	CharacterVsCharacterCollisionSimple_RemoveCharacter :: proc(characterVsCharacter: ^CharacterVsCharacterCollision, character: ^CharacterVirtual) ---
-	CharacterVsCharacterCollision_Destroy               :: proc(listener: ^CharacterVsCharacterCollision) ---
-
-	/* CollisionDispatch */
-	CollisionDispatch_CollideShapeVsShape        :: proc(shape1: ^Shape, shape2: ^Shape, scale1: ^Vec3, scale2: ^Vec3, centerOfMassTransform1: ^Matrix4x4, centerOfMassTransform2: ^Matrix4x4, collideShapeSettings: ^CollideShapeSettings, callback: CollideShapeCollectorCallback, userData: rawptr, shapeFilter: ^ShapeFilter) -> bool ---
-	CollisionDispatch_CastShapeVsShapeLocalSpace :: proc(direction: ^Vec3, shape1: ^Shape, shape2: ^Shape, scale1InShape2LocalSpace: ^Vec3, scale2: ^Vec3, centerOfMassTransform1InShape2LocalSpace: ^Matrix4x4, centerOfMassWorldTransform2: ^Matrix4x4, shapeCastSettings: ^ShapeCastSettings, callback: CastShapeCollectorCallback, userData: rawptr, shapeFilter: ^ShapeFilter) -> bool ---
-	CollisionDispatch_CastShapeVsShapeWorldSpace :: proc(direction: ^Vec3, shape1: ^Shape, shape2: ^Shape, scale1: ^Vec3, inScale2: ^Vec3, centerOfMassWorldTransform1: ^Matrix4x4, centerOfMassWorldTransform2: ^Matrix4x4, shapeCastSettings: ^ShapeCastSettings, callback: CastShapeCollectorCallback, userData: rawptr, shapeFilter: ^ShapeFilter) -> bool ---
-
-	/* DebugRenderer */
-	DebugRenderer_SetProcs                       :: proc(procs: ^DebugRenderer_Procs) ---
-	DebugRenderer_Create                         :: proc(userData: rawptr) -> ^DebugRenderer ---
-	DebugRenderer_Destroy                        :: proc(renderer: ^DebugRenderer) ---
-	DebugRenderer_NextFrame                      :: proc(renderer: ^DebugRenderer) ---
-	DebugRenderer_SetCameraPos                   :: proc(renderer: ^DebugRenderer, position: ^RVec3) ---
-	DebugRenderer_DrawLine                       :: proc(renderer: ^DebugRenderer, from: ^RVec3, to: ^RVec3, color: Color) ---
-	DebugRenderer_DrawWireBox                    :: proc(renderer: ^DebugRenderer, box: ^AABox, color: Color) ---
-	DebugRenderer_DrawWireBox2                   :: proc(renderer: ^DebugRenderer, _matrix: ^RMatrix4x4, box: ^AABox, color: Color) ---
-	DebugRenderer_DrawMarker                     :: proc(renderer: ^DebugRenderer, position: ^RVec3, color: Color, size: f32) ---
-	DebugRenderer_DrawArrow                      :: proc(renderer: ^DebugRenderer, from: ^RVec3, to: ^RVec3, color: Color, size: f32) ---
-	DebugRenderer_DrawCoordinateSystem           :: proc(renderer: ^DebugRenderer, _matrix: ^RMatrix4x4, size: f32) ---
-	DebugRenderer_DrawPlane                      :: proc(renderer: ^DebugRenderer, point: ^RVec3, normal: ^Vec3, color: Color, size: f32) ---
-	DebugRenderer_DrawWireTriangle               :: proc(renderer: ^DebugRenderer, v1: ^RVec3, v2: ^RVec3, v3: ^RVec3, color: Color) ---
-	DebugRenderer_DrawWireSphere                 :: proc(renderer: ^DebugRenderer, center: ^RVec3, radius: f32, color: Color, level: c.int) ---
-	DebugRenderer_DrawWireUnitSphere             :: proc(renderer: ^DebugRenderer, _matrix: ^RMatrix4x4, color: Color, level: c.int) ---
-	DebugRenderer_DrawTriangle                   :: proc(renderer: ^DebugRenderer, v1: ^RVec3, v2: ^RVec3, v3: ^RVec3, color: Color, castShadow: DebugRenderer_CastShadow) ---
-	DebugRenderer_DrawBox                        :: proc(renderer: ^DebugRenderer, box: ^AABox, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
-	DebugRenderer_DrawBox2                       :: proc(renderer: ^DebugRenderer, _matrix: ^RMatrix4x4, box: ^AABox, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
-	DebugRenderer_DrawSphere                     :: proc(renderer: ^DebugRenderer, center: ^RVec3, radius: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
-	DebugRenderer_DrawUnitSphere                 :: proc(renderer: ^DebugRenderer, _matrix: RMatrix4x4, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
-	DebugRenderer_DrawCapsule                    :: proc(renderer: ^DebugRenderer, _matrix: ^RMatrix4x4, halfHeightOfCylinder: f32, radius: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
-	DebugRenderer_DrawCylinder                   :: proc(renderer: ^DebugRenderer, _matrix: ^RMatrix4x4, halfHeight: f32, radius: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
-	DebugRenderer_DrawOpenCone                   :: proc(renderer: ^DebugRenderer, top: ^RVec3, axis: ^Vec3, perpendicular: ^Vec3, halfAngle: f32, length: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
-	DebugRenderer_DrawSwingConeLimits            :: proc(renderer: ^DebugRenderer, _matrix: ^RMatrix4x4, swingYHalfAngle: f32, swingZHalfAngle: f32, edgeLength: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
-	DebugRenderer_DrawSwingPyramidLimits         :: proc(renderer: ^DebugRenderer, _matrix: ^RMatrix4x4, minSwingYAngle: f32, maxSwingYAngle: f32, minSwingZAngle: f32, maxSwingZAngle: f32, edgeLength: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
-	DebugRenderer_DrawPie                        :: proc(renderer: ^DebugRenderer, center: ^RVec3, radius: f32, normal: ^Vec3, axis: ^Vec3, minAngle: f32, maxAngle: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
-	DebugRenderer_DrawTaperedCylinder            :: proc(renderer: ^DebugRenderer, inMatrix: ^RMatrix4x4, top: f32, bottom: f32, topRadius: f32, bottomRadius: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
 
 	/* Skeleton */
 	Skeleton_Create                              :: proc() -> ^Skeleton ---
@@ -2121,7 +2112,14 @@ foreign lib {
 	Ragdoll_IsActive                                      :: proc(ragdoll: ^Ragdoll, lockBodies: bool) -> bool ---
 	Ragdoll_ResetWarmStart                                :: proc(ragdoll: ^Ragdoll) ---
 
-	EstimateCollisionResponse                     :: proc(body1: ^Body, body2: ^Body, manifold: ^ContactManifold, combinedFriction: f32, combinedRestitution: f32, minVelocityForRestitution: f32, numIterations: u32, result: ^CollisionEstimationResult) ---
+	//--------------------------------------------------------------------------------------------------
+	// Vehicle
+	//--------------------------------------------------------------------------------------------------
+	VehicleEngineSettings_Init :: proc(settings: ^VehicleEngineSettings) ---
+
+	/* VehicleTransmission */
+	VehicleTransmissionSettings_Create  :: proc(mode: TransmissionMode, switchTime: f32, clutchReleaseTime: f32, switchLatency: f32, shiftUpRPM: f32, shiftDownRPM: f32, clutchStrength: f32) -> ^VehicleTransmissionSettings ---
+	VehicleTransmissionSettings_Destroy :: proc(settings: ^VehicleTransmissionSettings) ---
 
 	/* VehicleConstraint */
 	VehicleConstraintSettings_Init                :: proc(settings: ^VehicleConstraintSettings) ---
@@ -2131,6 +2129,14 @@ foreign lib {
 	VehicleConstraint_GetWheeledVehicleController :: proc(constraint: ^VehicleConstraint) -> ^WheeledVehicleController ---
 	VehicleConstraint_SetVehicleCollisionTester   :: proc(constraint: ^VehicleConstraint, tester: ^VehicleCollisionTester) ---
 
+	/* VehicleColliionTester */
+	VehicleCollisionTesterRay_Create           :: proc(layer: ObjectLayer, up: ^Vec3, maxSlopeAngle: f32) -> ^VehicleCollisionTesterRay ---
+	VehicleCollisionTesterRay_Destroy          :: proc(tester: ^VehicleCollisionTesterRay) ---
+	VehicleCollisionTesterCastSphere_Create    :: proc(layer: ObjectLayer, radius: f32, up: ^Vec3, maxSlopeAngle: f32) -> ^VehicleCollisionTesterCastSphere ---
+	VehicleCollisionTesterCastSphere_Destroy   :: proc(tester: ^VehicleCollisionTesterCastSphere) ---
+	VehicleCollisionTesterCastCylinder_Create  :: proc(layer: ObjectLayer, convexRadiusFraction: f32) -> ^VehicleCollisionTesterCastCylinder ---
+	VehicleCollisionTesterCastCylinder_Destroy :: proc(tester: ^VehicleCollisionTesterCastCylinder) ---
+
 	/* Wheel */
 	WheelSettings_Init                            :: proc(settings: ^WheelSettings) ---
 	WheelSettingsWV_Init                          :: proc(settings: ^WheelSettingsWV) ---
@@ -2139,21 +2145,6 @@ foreign lib {
 	Wheel_HasContact      :: proc(wheel: ^Wheel) -> bool ---
 	Wheel_HasHitHardPoint :: proc(wheel: ^Wheel) -> bool ---
 	WheelWV_Create :: proc(settings: ^WheelSettingsWV) -> ^WheelWV ---
-
-	/* VehicleEngine */
-	VehicleEngineSettings_Init :: proc(settings: ^VehicleEngineSettings) ---
-
-	/* VehicleTransmission */
-	VehicleTransmissionSettings_Create  :: proc(mode: TransmissionMode, switchTime: f32, clutchReleaseTime: f32, switchLatency: f32, shiftUpRPM: f32, shiftDownRPM: f32, clutchStrength: f32) -> ^VehicleTransmissionSettings ---
-	VehicleTransmissionSettings_Destroy :: proc(settings: ^VehicleTransmissionSettings) ---
-
-	/* VehicleColliionTester */
-	VehicleCollisionTesterRay_Create           :: proc(layer: ObjectLayer, up: ^Vec3, maxSlopeAngle: f32) -> ^VehicleCollisionTesterRay ---
-	VehicleCollisionTesterRay_Destroy          :: proc(tester: ^VehicleCollisionTesterRay) ---
-	VehicleCollisionTesterCastSphere_Create    :: proc(layer: ObjectLayer, radius: f32, up: ^Vec3, maxSlopeAngle: f32) -> ^VehicleCollisionTesterCastSphere ---
-	VehicleCollisionTesterCastSphere_Destroy   :: proc(tester: ^VehicleCollisionTesterCastSphere) ---
-	VehicleCollisionTesterCastCylinder_Create  :: proc(layer: ObjectLayer, convexRadiusFraction: f32) -> ^VehicleCollisionTesterCastCylinder ---
-	VehicleCollisionTesterCastCylinder_Destroy :: proc(tester: ^VehicleCollisionTesterCastCylinder) ---
 
 	/* WheeledVehicleController */
 	WheeledVehicleControllerSettings_Create    :: proc(engine: ^VehicleEngineSettings, transmission: ^VehicleTransmissionSettings, differentialLimitedSlipRatio: f32) -> ^WheeledVehicleControllerSettings ---
@@ -2167,4 +2158,45 @@ foreign lib {
 	WheeledVehicleController_GetBrakeInput     :: proc(vehicle: ^WheeledVehicleController) -> f32 ---
 	WheeledVehicleController_SetHandBrakeInput :: proc(vehicle: ^WheeledVehicleController, handBrakeInput: f32) ---
 	WheeledVehicleController_GetHandBrakeInput :: proc(vehicle: ^WheeledVehicleController) -> f32 ---
+	
+	//--------------------------------------------------------------------------------------------------
+	// Draw Stuff
+	//--------------------------------------------------------------------------------------------------
+	/* BodyDrawFilter */
+	BodyDrawFilter_SetProcs                     :: proc(procs: ^BodyDrawFilter_Procs) ---
+	BodyDrawFilter_Create                       :: proc(userData: rawptr) -> ^BodyDrawFilter ---
+	BodyDrawFilter_Destroy                      :: proc(filter: ^BodyDrawFilter) ---
+
+	/* DrawSettings */
+	DrawSettings_InitDefault                   :: proc(settings: ^DrawSettings) ---
+
+	/* DebugRenderer */
+	DebugRenderer_SetProcs                       :: proc(procs: ^DebugRenderer_Procs) ---
+	DebugRenderer_Create                         :: proc(userData: rawptr) -> ^DebugRenderer ---
+	DebugRenderer_Destroy                        :: proc(renderer: ^DebugRenderer) ---
+	DebugRenderer_NextFrame                      :: proc(renderer: ^DebugRenderer) ---
+	DebugRenderer_SetCameraPos                   :: proc(renderer: ^DebugRenderer, position: ^RVec3) ---
+	DebugRenderer_DrawLine                       :: proc(renderer: ^DebugRenderer, from: ^RVec3, to: ^RVec3, color: Color) ---
+	DebugRenderer_DrawWireBox                    :: proc(renderer: ^DebugRenderer, box: ^AABox, color: Color) ---
+	DebugRenderer_DrawWireBox2                   :: proc(renderer: ^DebugRenderer, _matrix: ^RMatrix4x4, box: ^AABox, color: Color) ---
+	DebugRenderer_DrawMarker                     :: proc(renderer: ^DebugRenderer, position: ^RVec3, color: Color, size: f32) ---
+	DebugRenderer_DrawArrow                      :: proc(renderer: ^DebugRenderer, from: ^RVec3, to: ^RVec3, color: Color, size: f32) ---
+	DebugRenderer_DrawCoordinateSystem           :: proc(renderer: ^DebugRenderer, _matrix: ^RMatrix4x4, size: f32) ---
+	DebugRenderer_DrawPlane                      :: proc(renderer: ^DebugRenderer, point: ^RVec3, normal: ^Vec3, color: Color, size: f32) ---
+	DebugRenderer_DrawWireTriangle               :: proc(renderer: ^DebugRenderer, v1: ^RVec3, v2: ^RVec3, v3: ^RVec3, color: Color) ---
+	DebugRenderer_DrawWireSphere                 :: proc(renderer: ^DebugRenderer, center: ^RVec3, radius: f32, color: Color, level: c.int) ---
+	DebugRenderer_DrawWireUnitSphere             :: proc(renderer: ^DebugRenderer, _matrix: ^RMatrix4x4, color: Color, level: c.int) ---
+	DebugRenderer_DrawTriangle                   :: proc(renderer: ^DebugRenderer, v1: ^RVec3, v2: ^RVec3, v3: ^RVec3, color: Color, castShadow: DebugRenderer_CastShadow) ---
+	DebugRenderer_DrawBox                        :: proc(renderer: ^DebugRenderer, box: ^AABox, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
+	DebugRenderer_DrawBox2                       :: proc(renderer: ^DebugRenderer, _matrix: ^RMatrix4x4, box: ^AABox, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
+	DebugRenderer_DrawSphere                     :: proc(renderer: ^DebugRenderer, center: ^RVec3, radius: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
+	DebugRenderer_DrawUnitSphere                 :: proc(renderer: ^DebugRenderer, _matrix: RMatrix4x4, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
+	DebugRenderer_DrawCapsule                    :: proc(renderer: ^DebugRenderer, _matrix: ^RMatrix4x4, halfHeightOfCylinder: f32, radius: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
+	DebugRenderer_DrawCylinder                   :: proc(renderer: ^DebugRenderer, _matrix: ^RMatrix4x4, halfHeight: f32, radius: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
+	DebugRenderer_DrawOpenCone                   :: proc(renderer: ^DebugRenderer, top: ^RVec3, axis: ^Vec3, perpendicular: ^Vec3, halfAngle: f32, length: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
+	DebugRenderer_DrawSwingConeLimits            :: proc(renderer: ^DebugRenderer, _matrix: ^RMatrix4x4, swingYHalfAngle: f32, swingZHalfAngle: f32, edgeLength: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
+	DebugRenderer_DrawSwingPyramidLimits         :: proc(renderer: ^DebugRenderer, _matrix: ^RMatrix4x4, minSwingYAngle: f32, maxSwingYAngle: f32, minSwingZAngle: f32, maxSwingZAngle: f32, edgeLength: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
+	DebugRenderer_DrawPie                        :: proc(renderer: ^DebugRenderer, center: ^RVec3, radius: f32, normal: ^Vec3, axis: ^Vec3, minAngle: f32, maxAngle: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
+	DebugRenderer_DrawTaperedCylinder            :: proc(renderer: ^DebugRenderer, inMatrix: ^RMatrix4x4, top: f32, bottom: f32, topRadius: f32, bottomRadius: f32, color: Color, castShadow: DebugRenderer_CastShadow, drawMode: DebugRenderer_DrawMode) ---
+
 }
