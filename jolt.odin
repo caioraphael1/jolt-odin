@@ -487,7 +487,7 @@ Quat :: struct {
 	w: f32,
 }
 
-Quat_Identity :: Quat{ 0, 0, 0, 1 }
+// Quat_Identity :: Quat{ 0, 0, 0, 1 }
 
 Plane :: struct {
 	normal:   Vec3,
@@ -830,7 +830,7 @@ CharacterBaseSettings :: struct {
 }
 
 CharacterSettings :: struct {
-	base:    CharacterBaseSettings, /* Inherics CharacterBaseSettings */
+	using base:    CharacterBaseSettings, /* Inherics CharacterBaseSettings */
 	layer:         ObjectLayer,
 	mass:          f32,
 	friction:      f32,
@@ -839,7 +839,7 @@ CharacterSettings :: struct {
 }
 
 CharacterVirtualSettings :: struct {
-	base:                CharacterBaseSettings, /* Inherics CharacterBaseSettings */
+	using base:                CharacterBaseSettings, /* Inherics CharacterBaseSettings */
 	ID:                        CharacterID,
 	mass:                      f32,
 	maxStrength:               f32,
@@ -1079,6 +1079,7 @@ foreign lib {
 	//--------------------------------------------------------------------------------------------------
 	Init                       :: proc() -> bool ---
 	Shutdown                   :: proc() ---
+	
 	SetTraceHandler            :: proc(handler: TraceFunc) ---
 	SetAssertFailureHandler    :: proc(handler: AssertFailureFunc) ---
 
